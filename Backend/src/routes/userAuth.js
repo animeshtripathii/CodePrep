@@ -1,8 +1,8 @@
 const express=require('express')
+const authRouter=express.Router();
 const {register,login,logout,getProfile,adminRegister}=require('../Controllers/userAuthent');
 const userMiddleware=require('../middleware/userMiddleware');
 const adminMiddleware=require('../middleware/adminMiddleware');
-const authRouter=express.Router();
 
 //userRegister
 authRouter.post('/register',register);
