@@ -23,9 +23,8 @@ const problemSchema = new Schema({
     default: [],
     required: true,
   },
-  visibleTestCases: {
-    require: true,
-    type: [
+  visibleTestCases: [
+  
       {
         input: {
           type: String,
@@ -38,13 +37,11 @@ const problemSchema = new Schema({
         explanation: {
           type: String,
           required: true,
-        },
-      },
+        }
+      }
     ],
-  },
-  hiddenTestCases: {
-    require: true,
-    type: [
+  hiddenTestCases: [
+
       {
         input: {
           type: String,
@@ -55,9 +52,22 @@ const problemSchema = new Schema({
           required: true,
         },
       },
+   
     ],
-  },
   startCode: [
+    {
+      language: {
+        type: String,
+        required: true,
+      },
+      intialCode: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
+
+  refernceSolution: [
     {
       language: {
         type: String,
