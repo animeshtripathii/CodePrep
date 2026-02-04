@@ -1,6 +1,6 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-
+const problemRouter=require('./routes/problemCreationAuth.')
 const express = require('express');
 const connectDB = require('./config/db');
 const cookieparser = require('cookie-parser');
@@ -12,6 +12,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieparser());
 app.use('/user', authRouter);
+app.use('/problem', problemRouter);
 
 const InitializeServer = async () => {
   try {

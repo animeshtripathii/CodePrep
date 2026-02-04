@@ -73,7 +73,7 @@ const problemSchema = new Schema({
         type: String,
         required: true,
       },
-      intialCode: {
+      completeCode: {
         type: String,
         required: true,
       },
@@ -85,5 +85,5 @@ const problemSchema = new Schema({
     required: true,
   },
 });
-const problem = mongoose.model("Problem", problemSchema);
-module.exports = problem;
+const problemModel = mongoose.model("Problem", problemSchema);
+module.exports = problemModel;
