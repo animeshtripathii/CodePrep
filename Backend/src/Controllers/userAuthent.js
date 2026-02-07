@@ -28,10 +28,10 @@ const register = async (req, res) => {
       { expiresIn: '1h' }
     );
     res.cookie('token', token, {
-      httpOnly: true,
+      // httpOnly: true,
       // secure should be true only in production (requires HTTPS)
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      // secure: process.env.NODE_ENV === 'production',
+      // sameSite: 'strict',
       maxAge: 60 * 60 * 1000 // 1 hour
     });
     // Redirect to login page after successful registration
@@ -74,10 +74,10 @@ const login = async (req, res) => {
 
     //cookie set
     res.cookie('token', token, {
-      httpOnly: true,
+      // httpOnly: true,
       // secure should be true only in production (requires HTTPS)
-      secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'strict',
+      //secure: process.env.NODE_ENV === 'production', 
+      //sameSite: 'strict',
       maxAge: 60 * 60 * 1000 // 1 hour
     });
     
