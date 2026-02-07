@@ -13,8 +13,8 @@ problemRouter.delete('/delete/:id',adminMiddleware,deleteProblem);
 //problem solved by user
 
 //fetch
-problemRouter.get('/ProblemById:id',userMiddleware,getProblemById);//fetch single problem with id
+problemRouter.get('/problemById/:id',userMiddleware,getProblemById);//fetch single problem with id
 problemRouter.get('/getAllProblem',userMiddleware,getAllProblem);//fetch all problems
-problemRouter.get('/ProblemSolvedByUSer',userMiddleware,solvedAllProblemUser);//probelms solved by user
+problemRouter.get('/problemSolvedByUser',userMiddleware,solvedAllProblemUser);//problems solved by user
 
 module.exports=problemRouter;
