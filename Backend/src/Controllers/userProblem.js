@@ -1,5 +1,6 @@
 const { getLanguageId, submitBatch, submitToken } = require('../utils/problemSubmissionUtility');
 const problemModel = require('../models/problem');
+const User = require('../models/user');
 
 const createProblem = async (req, res) => {
     const { title, description, tags, difficulty, visibleTestCases, hiddenTestCases, startCode, refernceSolution, problemCreator } = req.body;
@@ -155,7 +156,7 @@ const getProblemById=async(req,res)=>{
         if(!problemId){
             return res.status(400).json({message:"Problem ID is required"});
         }
-        const DsaProblem=await problemModel.findById(problemId);
+        const DsaProblem=await problemModel.findById(problemId).select('title description tags difficulty visibleTestCases referenceSolution startCode ');
     if(!DsaProblem){
         return res.status(404).json({message:"Problem not found"});
     }
@@ -179,7 +180,7 @@ const getAllProblem=async(req,res)=>{
 //example if page=2 and limit=10 then skip=(2-1)*10=10 and limit=10 so we will fetch problems from 11 to 20
 
     try{
-        const allProblem=await problemModel.find({});
+        const allProblem=await problemModel.find({}).select('title description tags');
         res.status(200).json({problems:allProblem});
     }catch(error){
         res.status(500).json({ message: "Internal Server Error", error: error.message });
@@ -187,7 +188,14 @@ const getAllProblem=async(req,res)=>{
 }
 
 const solvedAllProblemUser=async(req,res)=>{
- 
+    try{
+   const count=req.result.problemSolved.length;
+ const userId=req.result._id;
+ const user=await User.findByIdAndUpdate(userId).populate('problemSolved','_id title description tags difficulty');
+   return res.status(200).json({count:count, user:user.problemSolved});
+    }catch(error){
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
 }
 
 module.exports = {createProblem,updateProblem,deleteProblem,getProblemById,getAllProblem,solvedAllProblemUser};
