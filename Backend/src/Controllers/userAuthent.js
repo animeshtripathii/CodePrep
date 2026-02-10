@@ -1,4 +1,5 @@
 const user = require("../models/user");
+const submission = require("../models/submission");
 const validate = require("../utils/validator");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -106,17 +107,7 @@ const logout = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    let token;
-
-    // Prefer Authorization header: "Bearer <token>"
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
-    } else if (req.cookies && req.cookies.token) {
-      // Fallback to token stored in cookie
-      token = req.cookies.token;
-    }
-
+    let token=req.cookies.token
     if (!token) {
       return res.status(401).json({ message: 'Authentication required' });
     }
@@ -124,7 +115,7 @@ const getProfile = async (req, res) => {
     // Verify JWT and extract user id
     const decoded = jwt.verify(token, process.env.JWT_Secret_Key);
 
-    const existingUser = await user.findById(decoded._id).select('firstName emailId');
+    const existingUser = await user.findById(decoded._id).select('firstName emailId problemSolved ');
     if (!existingUser) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -132,7 +123,8 @@ const getProfile = async (req, res) => {
     res.status(200).json({
       user: {
         firstName: existingUser.firstName,
-        emailId: existingUser.emailId
+        emailId: existingUser.emailId,
+        problemSolved: existingUser.problemSolved
       }
     });
   } catch (error) {
@@ -179,4 +171,17 @@ try {
   }
 };
 
-module.exports = { register, login, logout, getProfile,adminRegister};
+const deleteProfile=async(req,res)=>{
+  try{
+const userId=req.result._id;
+//user delted from database
+await user.findByIdAndDelete(userId);
+//now delete all the submissions of that user
+await submission.deleteMany({userId});
+
+res.status(200).json({message:"Profile deleted successfully"});
+  }catch(err){
+     res.status(500).json({message:"Failed to delete profile",error:err.message});
+  }
+}
+module.exports = { register, login, logout, getProfile,adminRegister,deleteProfile};

@@ -26,9 +26,10 @@ const adminMiddleware=async(req,res,next)=>{
             throw new Error('Invalid token');
           }
           req.result=result;
-          next();   
+          console.log(req);
+         next();   
         } catch (error) {
           res.status(401).json({ message: error.message });
         }
     }
-    module.exports=adminMiddleware;
+     module.exports=adminMiddleware;
