@@ -36,8 +36,14 @@ const register = async (req, res) => {
       maxAge: 60 * 60 * 1000 // 1 hour
     });
     // Redirect to login page after successful registration
+    const reply={
+      firstName: newUser.firstName,
+      emailId: newUser.emailId,
+      _id: newUser._id
+    }
     res.status(201).json({
       message: "User registered successfully",
+      user: reply
     });
   } catch(error){
     res.status(400).json({ message: error.message });
@@ -81,10 +87,14 @@ const login = async (req, res) => {
       //sameSite: 'strict',
       maxAge: 60 * 60 * 1000 // 1 hour
     });
-    
+    const reply={
+      firstName: existingUser.firstName,
+      emailId: existingUser.emailId,
+      _id: existingUser._id
+    }
     res.status(200).json({ 
         message: 'Login successful',
-        user: { firstName: existingUser.firstName, emailId: existingUser.emailId }
+        user:reply
     });
 
   } catch (error) {

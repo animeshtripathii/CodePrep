@@ -5,7 +5,7 @@ const userMiddleware=async(req,res,next)=>{
     try {
         const {token}=req.cookies;
         if(!token){
-            throw new Error('Login required');
+            throw new Error('Login or Signup required');
         }
           const payload=  jwt.verify(token,process.env.JWT_Secret_Key)
         
@@ -24,6 +24,7 @@ const userMiddleware=async(req,res,next)=>{
             throw new Error('Invalid token');
           }
           req.result=result;
+          console.log("result in middleware",result);
           next();   
         } catch (error) {
           res.status(401).json({ message: error.message });
