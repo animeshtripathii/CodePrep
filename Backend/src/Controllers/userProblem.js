@@ -3,10 +3,10 @@ const problemModel = require('../models/problem');
 const User = require('../models/user');
 
 const createProblem = async (req, res) => {
-    const { title, description, tags, difficulty, visibleTestCases, hiddenTestCases, startCode, refernceSolution, problemCreator } = req.body;
+    const { title, description, tags, difficulty, visibleTestCases, hiddenTestCases, startCode, referenceSolution } = req.body;
 
     try {
-        for (const sol of refernceSolution) {
+        for (const sol of referenceSolution) {
             const language = sol.language;
             const completeCode = sol.completeCode;
             const languageId = getLanguageId(language);
@@ -69,7 +69,7 @@ const createProblem = async (req, res) => {
 const updateProblem=async(req,res)=>{
    const problemId=req.params.id;
  
-    const { title, description, tags, difficulty, visibleTestCases, hiddenTestCases, startCode, refernceSolution, problemCreator } = req.body;
+    const { title, description, tags, difficulty, visibleTestCases, hiddenTestCases, startCode, referenceSolution, problemCreator } = req.body;
 try{  
     if(!problemId){
         return res.status(400).json({message:"Problem ID is required"});
@@ -78,7 +78,7 @@ try{
 if(!DsaProblem){
     return res.status(404).json({message:"Problem not found"});
 }
-for (const sol of refernceSolution) {
+for (const sol of referenceSolution) {
             const language = sol.language;
             const completeCode = sol.completeCode;
             const languageId = getLanguageId(language);
@@ -168,20 +168,35 @@ const getProblemById=async(req,res)=>{
 
 const getAllProblem=async(req,res)=>{
 
-//here we can implement pagination,because if databse have large number of problems then it will be difficult to fetch all problems at once and it will take more time to load the problems this is bad for user experience
+    //here we can implement pagination,because if databse have large number of problems then it will be difficult to fetch all problems at once and it will take more time to load the problems this is bad for user experience
 
-//but for pagination we need to send page number and limit of problems per page from frontend in query params like /getAllProblem?page=1&limit=10
+    //but for pagination we need to send page number and limit of problems per page from frontend in query params like /getAllProblem?page=1&limit=10
 
-//and then we can use skip and limit method of mongoose to fetch the problems accordingly
-//skip=(page-1)*limit
-//limit=limit
+    //and then we can use skip and limit method of mongoose to fetch the problems accordingly
+    //skip=(page-1)*limit
+    //limit=limit
 
-//formula for calculating skip and limit
-//example if page=2 and limit=10 then skip=(2-1)*10=10 and limit=10 so we will fetch problems from 11 to 20
+    //formula for calculating skip and limit
+    //example if page=2 and limit=10 then skip=(2-1)*10=10 and limit=10 so we will fetch problems from 11 to 20
 
     try{
-        const allProblem=await problemModel.find({}).select('title description tags');
-        res.status(200).json({problems:allProblem});
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const allProblem = await problemModel.find({})
+            .select('title description tags difficulty')
+            .skip(skip)
+            .limit(limit);
+
+        const totalProblems = await problemModel.countDocuments();
+
+        res.status(200).json({
+            problems: allProblem,
+            currentPage: page,
+            totalPages: Math.ceil(totalProblems / limit),
+            totalProblems
+        });
     }catch(error){
         res.status(500).json({ message: "Internal Server Error", error: error.message });
     }

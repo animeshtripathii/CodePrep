@@ -1,37 +1,39 @@
+// Helper to map languages to Judge0 IDs
 const axios = require('axios');
-
 const getLanguageId = (lang) => {
-    const language = {
+    const languages = {
         "c": 50,
         "c++": 53,
         "java": 62,
         "python": 71,
         "javascript": 63,
-    }
-    return language[lang.toLowerCase()];
-}
+    };
+    return languages[lang.toLowerCase()];
+};
 
+// 1. Submit Batch Function (Updated to WAIT for results)
 const submitBatch = async (submissions) => {
     const options = {
         method: 'POST',
-        url: 'https://judge029.p.rapidapi.com/submissions/batch',
+        // IMPORTANT: Added wait=true to get results immediately
+        url: 'https://judge029.p.rapidapi.com/submissions/batch?base64_encoded=false&wait=true', 
         headers: {
-            'x-rapidapi-key': process.env.JUDGE0_API,
+            'x-rapidapi-key': process.env.JUDGE0_API, // Ensure this is set in .env
             'x-rapidapi-host': 'judge029.p.rapidapi.com',
             'Content-Type': 'application/json'
         },
-        data: {
-            submissions: submissions
-        }
+        data: { submissions }
     };
 
     try {
         const response = await axios.request(options);
         return response.data;
     } catch (error) {
-        return error.response ? error.response.data : { error: "Unknown error" };
+        console.error("Judge0 API Error:", error.response ? error.response.data : error.message);
+        return null; 
     }
-}
+};
+
 
 const waiting = (timer) => {
     return new Promise((resolve) => setTimeout(resolve, timer));

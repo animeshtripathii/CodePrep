@@ -50,11 +50,17 @@ const authSlice=createSlice({
     name:"auth",
     initialState:{
         user:null,
-        loading:false,
+        loading:true, // Set initial loading to true
         error:null,
         isAuthenticated:false,
+        problemSolved:[] // Add problemSolved to the state
     },
-    reducers:{},
+    reducers:{
+        // Add a reducer to handle initial load completion if needed
+        setLoading: (state, action) => {
+            state.loading = action.payload;
+        },
+    },
     extraReducers:(builder)=>{
         builder
         .addCase(registerUser.pending,(state)=>{
@@ -65,6 +71,7 @@ const authSlice=createSlice({
             state.loading=false;
             state.user=action.payload;
             state.isAuthenticated=!!action.payload;
+            state.problemSolved=action.payload.problemSolved || []; // Ensure problemSolved is set
         })
         .addCase(registerUser.rejected,(state,action)=>{
             state.loading=false;
@@ -81,6 +88,7 @@ const authSlice=createSlice({
             state.loading=false;
             state.user=action.payload;
             state.isAuthenticated=!!action.payload;
+            state.problemSolved=action.payload.problemSolved || [];
         })
         .addCase(loginUser.rejected,(state,action)=>{
             state.loading=false;
@@ -90,11 +98,17 @@ const authSlice=createSlice({
         })
 
         //checkAuth cases
+        .addCase(checkAuthStatus.pending,(state)=>{
+            state.loading=true;
+        })
         .addCase(checkAuthStatus.fulfilled,(state,action)=>{
+            state.loading=false;
             state.user=action.payload;
             state.isAuthenticated=!!action.payload;
+            state.problemSolved=action.payload.problemSolved || [];
         })
         .addCase(checkAuthStatus.rejected,(state,action)=>{
+            state.loading=false;
             state.user=null;
             state.isAuthenticated=false;
         })
@@ -103,6 +117,7 @@ const authSlice=createSlice({
             state.user=null;
             state.loading=false;
             state.isAuthenticated=false;
+            state.problemSolved=[]; // Reset problemSolved on logout
             state.error=null;
         })
         .addCase(logoutUser.rejected,(state,action)=>{

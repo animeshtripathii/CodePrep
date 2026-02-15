@@ -16,7 +16,7 @@ const problemSchema = new Schema({
   difficulty: {
     type: String,
     required: true,
-    enum: ["easy", "medium", "hard"],
+    enum: ["easy", "medium", "hard"], // Lowercase to match your JSON
   },
   tags: {
     type: [String],
@@ -24,66 +24,37 @@ const problemSchema = new Schema({
     required: true,
   },
   visibleTestCases: [
-  
-      {
-        input: {
-          type: String,
-          required: true,
-        },
-        output: {
-          type: String,
-          required: true,
-        },
-        explanation: {
-          type: String,
-          required: true,
-        }
-      }
-    ],
-  hiddenTestCases: [
-
-      {
-        input: {
-          type: String,
-          required: true,
-        },
-        output: {
-          type: String,
-          required: true,
-        },
-      },
-   
-    ],
-  startCode: [
     {
-      language: {
-        type: String,
-        required: true,
-      },
-      intialCode: {
-        type: String,
-        required: true,
-      },
+      input: { type: String, required: true },
+      output: { type: String, required: true },
+      explanation: { type: String, required: true }
+    }
+  ],
+  hiddenTestCases: [
+    {
+      input: { type: String, required: true },
+      output: { type: String, required: true },
     },
   ],
-
-  refernceSolution: [
+  startCode: [
     {
-      language: {
-        type: String,
-        required: true,
-      },
-      completeCode: {
-        type: String,
-        required: true,
-      },
+      language: { type: String, required: true },
+      initialCode: { type: String, required: true }, // Fixed typo: intialCode -> initialCode
+    },
+  ],
+  referenceSolution: [ 
+    {
+      language: { type: String, required: true },
+      completeCode: { type: String, required: true },
     },
   ],
   problemCreator: {
     type: Schema.Types.ObjectId,
     ref: "user",
-    required: true,
-  },
+    default: null
+  }
 });
+
+
 const problemModel = mongoose.model("problem", problemSchema);
 module.exports = problemModel;

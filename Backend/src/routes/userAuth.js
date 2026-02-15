@@ -28,6 +28,7 @@ authRouter.get("/check",userMiddleware,(req,res)=>{
     firstName:req.result.firstName,
     emailId: req.result.emailId,
     _id:req.result._id,
+    problemSolved: req.result.problemSolved
     }
     res.json({message:"You are authenticated",user:reply});
 });

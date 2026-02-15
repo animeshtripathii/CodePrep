@@ -39,7 +39,8 @@ const register = async (req, res) => {
     const reply={
       firstName: newUser.firstName,
       emailId: newUser.emailId,
-      _id: newUser._id
+      _id: newUser._id,
+      problemSolved: []
     }
     res.status(201).json({
       message: "User registered successfully",
@@ -90,7 +91,8 @@ const login = async (req, res) => {
     const reply={
       firstName: existingUser.firstName,
       emailId: existingUser.emailId,
-      _id: existingUser._id
+      _id: existingUser._id,
+      problemSolved: existingUser.problemSolved
     }
     res.status(200).json({ 
         message: 'Login successful',

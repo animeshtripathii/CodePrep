@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { loginUser } from ".././app/features/auth/authSlice.js";;
+import { loginUser } from ".././app/features/auth/authSlice.js";
 
 const loginSchema = z.object({
   emailId: z.string().email({ message: "Invalid email address" }),
@@ -14,7 +14,7 @@ const loginSchema = z.object({
     .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
     .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
     .regex(/[0-9]/, { message: "Password must contain at least one number" })
-    .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least one special character" }),
+    .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least one special character" }), 
 });
 
 function Login() {
@@ -42,84 +42,113 @@ function Login() {
   };
 
   return (
-    <div className="bg-black font-sans text-gray-300 antialiased h-screen w-full overflow-hidden relative selection:bg-gray-500 selection:text-white">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMDAwMDAwIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz4KPC9zdmc+')] z-0 opacity-20"></div>
-      <div className="absolute inset-0 bg-linear-to-b from-transparent via-black to-black z-0"></div>
+    <div className="bg-[#f5f8f8] dark:bg-[#101f22] font-sans text-white min-h-screen flex items-center justify-center relative overflow-hidden bg-[#050a0b] transition-colors duration-300">
+      {/* Background Mesh Gradient */}
+      <div className="absolute inset-0 bg-[radial-gradient(at_0%_0%,rgba(13,204,242,0.15)_0px,transparent_50%),radial-gradient(at_100%_100%,rgba(13,204,242,0.1)_0px,transparent_50%),radial-gradient(at_50%_50%,rgba(16,31,34,1)_0px,transparent_100%)]"></div>
       
-      <div className="absolute top-[-10%] left-[-10%] w-150 h-150 rounded-full blur-[80px] animate-float z-0 pointer-events-none opacity-20 bg-gray-700/30"></div>
-      <div className="absolute bottom-[-10%] right-[-5%] w-125 h-125 rounded-full blur-[90px] animate-float-delayed z-0 pointer-events-none opacity-20 bg-gray-800/30"></div>
+      {/* Decorative 3D Elements (Blurred Orbs/Grid) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Top Left Glow */}
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#0dccf2]/20 rounded-full blur-[100px] opacity-50"></div>
+        {/* Bottom Right Glow */}
+        <div className="absolute -bottom-40 -right-40 w-[30rem] h-[30rem] bg-[#0dccf2]/10 rounded-full blur-[120px] opacity-40"></div>
+        {/* Abstract Geometric Elements */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 border border-[#0dccf2]/10 rounded-full opacity-20 transform -translate-x-1/2 rotate-45" style={{borderWidth: '1px'}}></div>
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 border border-[#0dccf2]/5 rounded-full opacity-20 transform translate-x-1/2 -rotate-12" style={{borderWidth: '1px'}}></div>
+        {/* Grid Overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(13,204,242,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(13,204,242,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,black,transparent)]"></div>
+      </div>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="glass-panel w-full max-w-105 rounded-3xl p-8 relative overflow-hidden group border-t border-l border-white/10 shadow-2xl bg-gray-900/60!">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-linear-to-tr from-gray-800 to-black flex items-center justify-center shadow-[0_0_30px_-5px_rgba(255,255,255,0.1)] border border-gray-700 mb-5 relative">
-              <span className="material-symbols-outlined text-gray-200 text-3xl relative z-10">terminal</span>
+      {/* Main Content Container */}
+      <main className="relative z-10 w-full max-w-md px-6">
+        {/* Crystal Glass Card */}
+        <div className="bg-[#101f22]/60 backdrop-blur-xl border border-white/10 border-t-white/15 border-l-white/15 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] rounded-2xl p-8 md:p-12 relative overflow-hidden group/card">
+          {/* Subtle Inner Shine */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#0dccf2]/30 to-transparent opacity-50"></div>
+          
+          {/* Header Section */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0dccf2]/10 border border-[#0dccf2]/20 text-[#0dccf2] mb-6 shadow-[0_0_15px_rgba(13,204,242,0.3)]">
+              <span className="material-icons text-2xl">terminal</span>
             </div>
-            <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-white via-gray-400 to-gray-600 tracking-tight">Welcome Back</h2>
-            <p className="text-gray-400 text-sm mt-2 font-light">Enter your credentials to access the terminal</p>
+            <h1 className="text-3xl font-bold tracking-tight text-white mb-2 drop-shadow-lg font-display">CodePrep</h1>
+            <p className="text-slate-400 text-sm tracking-wide uppercase">Login to Your Account</p>
           </div>
-
-          <form onSubmit={handleSubmit(submitData)} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1" htmlFor="emailId">Email</label>
-              <div className="relative group/input">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500 group-focus-within/input:text-gray-300 transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">alternate_email</span>
-                </div>
-                <input
-                  className="glass-input block w-full pl-11 pr-4 py-3.5 rounded-2xl text-sm placeholder:text-gray-600 focus:text-white focus:border-gray-500! focus:shadow-[0_0_0_1px_rgba(107,114,128,0.5),0_0_15px_rgba(107,114,128,0.15)]!"
-                  id="emailId"
-                  placeholder="name@company.com"
+          
+          {/* Login Form */}
+          <form onSubmit={handleSubmit(submitData)} className="space-y-8">
+            {/* Email Input */}
+            <div className="group relative">
+              <label className="block text-xs font-medium text-[#0dccf2]/80 uppercase tracking-widest mb-1 ml-1" htmlFor="emailId">Email</label>
+              <div className="relative flex items-center">
+                <span className="material-icons absolute left-0 text-slate-500 group-focus-within:text-[#0dccf2] transition-colors duration-300 z-10">alternate_email</span>
+                <input 
+                  className="w-full bg-transparent border-0 border-b-2 border-white/10 text-white placeholder-slate-600 focus:ring-0 focus:border-white/10 pl-10 pb-2 pt-2 transition-all duration-300 font-light focus:outline-none relative z-0" 
+                  id="emailId" 
+                  placeholder="Enter your email" 
                   type="email"
                   {...register("emailId")}
                 />
+                {/* Animated Bottom Border */}
+                <div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#0dccf2] to-[#0dccf2] w-0 group-focus-within:w-full transition-all duration-300"></div>
               </div>
-              {errors.emailId && <p className="text-red-400 text-xs pl-1">⚠ {errors.emailId.message}</p>}
+              {errors.emailId && <p className="text-red-400 text-xs mt-1 absolute -bottom-5 left-0">⚠ {errors.emailId.message}</p>}
             </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between ml-1">
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider" htmlFor="password">Password</label>
+            
+            {/* Password Input */}
+            <div className="group relative">
+              <div className="flex justify-between items-center mb-1 ml-1">
+                <label className="block text-xs font-medium text-[#0dccf2]/80 uppercase tracking-widest" htmlFor="password">Passcode</label>
               </div>
-              <div className="relative group/input">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500 group-focus-within/input:text-gray-300 transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">lock_open</span>
-                </div>
-                <input
-                  className="glass-input block w-full pl-11 pr-11 py-3.5 rounded-2xl text-sm placeholder:text-gray-600 focus:text-white focus:border-gray-500! focus:shadow-[0_0_0_1px_rgba(107,114,128,0.5),0_0_15px_rgba(107,114,128,0.15)]!"
-                  id="password"
-                  placeholder="••••••••"
+              <div className="relative flex items-center">
+                <span className="material-icons absolute left-0 text-slate-500 group-focus-within:text-[#0dccf2] transition-colors duration-300 z-10">lock_open</span>
+                <input 
+                  className="w-full bg-transparent border-0 border-b-2 border-white/10 text-white placeholder-slate-600 focus:ring-0 focus:border-white/10 pl-10 pb-2 pt-2 transition-all duration-300 font-light focus:outline-none relative z-0" 
+                  id="password" 
+                  placeholder="••••••••••••" 
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
                 />
-                <button
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-white cursor-pointer transition-colors"
+                {/* Animated Bottom Border */}
+                <div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#0dccf2] to-[#0dccf2] w-0 group-focus-within:w-full transition-all duration-300"></div>
+                <button 
+                  className="absolute right-0 text-slate-500 hover:text-white transition-colors cursor-pointer z-10" 
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  <span className="material-symbols-outlined text-[20px]">{showPassword ? "visibility_off" : "visibility"}</span>
+                  <span className="material-icons text-sm">{showPassword ? "visibility" : "visibility_off"}</span>
                 </button>
               </div>
-              {errors.password && <p className="text-red-400 text-xs pl-1">⚠ {errors.password.message}</p>}
+              {errors.password && <p className="text-red-400 text-xs mt-1 absolute -bottom-5 left-0">⚠ {errors.password.message}</p>}
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-2xl text-white font-semibold text-sm tracking-wide shadow-lg mt-4 cursor-pointer bg-linear-to-r from-gray-800 to-gray-950 hover:from-gray-700 hover:to-gray-900 border border-gray-700 transition-all duration-300 disabled:opacity-50"
-            >
-              {loading ? "Logging in..." : "Sign In"}
-            </button>
+            
+            {/* Actions */}
+            <div className="pt-4">
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full relative group overflow-hidden rounded-lg p-[1px] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0dccf2]/50 to-[#0dccf2]/20 opacity-50 blur-sm group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative bg-[#0dccf2]/20 hover:bg-[#0dccf2]/30 backdrop-blur-md border border-[#0dccf2]/30 rounded-lg px-6 py-3.5 flex items-center justify-center transition-all duration-300 shadow-[0_0_20px_rgba(13,204,242,0.15)] group-hover:shadow-[0_0_30px_rgba(13,204,242,0.4)]">
+                  <span className="font-bold tracking-widest uppercase text-sm text-cyan-50 mr-2 font-['Space_Grotesk']">
+                    {loading ? "Authenticating..." : "Login"}
+                  </span>
+                   <span className="material-icons text-sm transform group-hover:translate-x-1 transition-transform duration-300">arrow_forward</span>
+                </div>
+              </button>
+            </div>
+            
+            {/* Footer Links */}
+            <div className="flex justify-between items-center text-xs text-slate-400 mt-6 pt-6 border-t border-white/5">
+              <a className="hover:text-[#0dccf2] transition-colors duration-200" href="#">Forgot Password</a>
+              <span className="text-white/10">|</span>
+              <Link className="hover:text-[#0dccf2] transition-colors duration-200" to="/signup">Create Account</Link>
+            </div>
           </form>
-
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-400">
-              New to CodePrep? 
-              <Link to="/signup" className="text-white hover:text-gray-200 font-medium transition-colors ml-1">Create account</Link>
-            </p>
-          </div>
         </div>
-      </div>
+  
+      </main>
     </div>
   );
 }
