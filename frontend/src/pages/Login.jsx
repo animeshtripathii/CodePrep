@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { loginUser } from ".././app/features/auth/authSlice.js";
+import { loginUser } from "../context/features/auth/authSlice.js";
+
 
 const loginSchema = z.object({
   emailId: z.string().email({ message: "Invalid email address" }),
@@ -42,7 +43,7 @@ function Login() {
   };
 
   return (
-    <div className="bg-[#f5f8f8] dark:bg-[#101f22] font-sans text-white min-h-screen flex items-center justify-center relative overflow-hidden bg-[#050a0b] transition-colors duration-300">
+    <div className="bg-[#f5f8f8] dark:bg-[#101f22] font-sans text-white min-h-screen flex flex-col relative overflow-hidden bg-[#050a0b] transition-colors duration-300">
       {/* Background Mesh Gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(at_0%_0%,rgba(13,204,242,0.15)_0px,transparent_50%),radial-gradient(at_100%_100%,rgba(13,204,242,0.1)_0px,transparent_50%),radial-gradient(at_50%_50%,rgba(16,31,34,1)_0px,transparent_100%)]"></div>
       
@@ -60,7 +61,7 @@ function Login() {
       </div>
 
       {/* Main Content Container */}
-      <main className="relative z-10 w-full max-w-md px-6">
+      <main className="relative z-10 w-full max-w-md px-6 m-auto">
         {/* Crystal Glass Card */}
         <div className="bg-[#101f22]/60 backdrop-blur-xl border border-white/10 border-t-white/15 border-l-white/15 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] rounded-2xl p-8 md:p-12 relative overflow-hidden group/card">
           {/* Subtle Inner Shine */}
@@ -152,5 +153,5 @@ function Login() {
     </div>
   );
 }
-
 export default Login;
+

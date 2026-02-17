@@ -4,7 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
-import { registerUser } from ".././app/features/auth/authSlice.js";
+import { registerUser } from "../context/features/auth/authSlice.js";
+
 
 const signupSchema = z
   .object({

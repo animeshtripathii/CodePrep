@@ -1,8 +1,8 @@
 const express=require('express')
 const authRouter=express.Router();
-const {register,login,logout,getProfile,adminRegister,deleteProfile}=require('../Controllers/userAuthent');
-const userMiddleware=require('../middleware/userMiddleware');
-const adminMiddleware=require('../middleware/adminMiddleware');
+const {register,login,logout,getProfile,adminRegister,deleteProfile, getDashboardStats}=require('../controllers/auth.controller');
+const userMiddleware=require('../middlewares/user.middleware');
+const adminMiddleware=require('../middlewares/admin.middleware');
 
 //userRegister
 authRouter.post('/register',register);
@@ -12,6 +12,7 @@ authRouter.post('/login',login);
 //logout
 authRouter.post('/logout',userMiddleware, logout);
 authRouter.delete('/deleteProfile',userMiddleware,deleteProfile);
+authRouter.get('/dashboard', userMiddleware, getDashboardStats);
 
 //adminRegister
 //here adminMiddleware  checks whether the already logged-in user is an admin.
@@ -28,13 +29,11 @@ authRouter.get("/check",userMiddleware,(req,res)=>{
     firstName:req.result.firstName,
     emailId: req.result.emailId,
     _id:req.result._id,
-    problemSolved: req.result.problemSolved
+    problemSolved: req.result.problemSolved,
+    role:req.result.role
     }
     res.json({message:"You are authenticated",user:reply});
 });
 
 
 module.exports=authRouter;
-
-
-

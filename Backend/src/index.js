@@ -1,18 +1,22 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-const problemRouter=require('./routes/problemCreationAuth.')
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('./config/db');
 const cookieparser = require('cookie-parser');
+
+// Config
+const connectDB = require('./config/db');
 const redisClient = require('./config/redis');
-const authRouter = require('./routes/userAuth');
-const codeSubmitRouter=require('./routes/codeSubmit');
+
+// Routes
+const authRouter = require('./routes/auth.routes');
+const problemRouter = require('./routes/problem.routes');
+const codeSubmitRouter = require('./routes/codeSubmit.routes');
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:5173', // Update with your frontend URL
-  credentials: true, // Allow cookies to be sent
+  origin: 'http://localhost:5173', 
+  credentials: true, 
 }));
 
 app.use(express.json());

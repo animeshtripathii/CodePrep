@@ -61,6 +61,19 @@ h3 {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
+.glass-btn {
+  background: rgba(13, 204, 242, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(13, 204, 242, 0.3);
+  box-shadow: 0 0 15px rgba(13, 204, 242, 0.2);
+  transition: all 0.3s ease;
+}
+.glass-btn:hover {
+  background: rgba(13, 204, 242, 0.25);
+  box-shadow: 0 0 25px rgba(13, 204, 242, 0.4);
+  border-color: rgba(13, 204, 242, 0.6);
+}
+
 .glass-card {
   @apply bg-[#101f22]/60 backdrop-blur-xl border border-white/10 border-t-white/15 border-l-white/15 rounded-2xl relative overflow-hidden;
   box-shadow: 0 8px 32px 0 rgba(0,0,0,0.3);

@@ -1,8 +1,8 @@
 const express=require('express')
 const problemRouter=express.Router();
-const {createProblem,updateProblem,deleteProblem,getProblemById,getAllProblem,solvedAllProblemUser}=require('../Controllers/userProblem');
-const adminMiddleware=require('../middleware/adminMiddleware');
-const userMiddleware=require('../middleware/userMiddleware');
+const {createProblem,updateProblem,deleteProblem,getProblemById,getAllProblem,solvedAllProblemUser}=require('../controllers/problem.controller');
+const adminMiddleware=require('../middlewares/admin.middleware');
+const userMiddleware=require('../middlewares/user.middleware');
 
 //create
 problemRouter.post('/create',adminMiddleware,createProblem);
