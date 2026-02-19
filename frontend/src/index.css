@@ -1,3 +1,7 @@
+/* Google Fonts must be first */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
 @import "tailwindcss";
 @plugin "daisyui";
 
@@ -5,30 +9,35 @@
   --font-sans: "Space Grotesk", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
-  --color-primary: #0dccf2;
-  --color-primary-focus: #0ab5d6;
+  /* ── Brand Colors ── */
+  --color-primary: #135bec;
+  --color-primary-focus: #0f4fd4;
   --color-secondary: #0f172a;
-  --color-accent: #10b981; /* Emerald/Green for success/accent */
-  
-  --color-bg-dark: #050a0b;
-  --color-bg-card: #101f22;
-  
+  --color-accent: #10b981; /* Emerald / success */
+
+  /* ── Dark Theme Backgrounds ── */
+  --color-bg-dark: #101622;
+  --color-bg-surface: #111722;
+  --color-bg-card: #1e293b;
+
+  /* ── Float animation (used on hero/decoration elements) ── */
   --animate-float: float 6s ease-in-out infinite;
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
+    50%       { transform: translateY(-20px); }
   }
 }
 
-/* Global Reset/Base Styles */
+/* ──────────────────────────────────────────────────────────
+   Global Base
+   ────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
-  @apply bg-[#050a0b] text-white font-sans antialiased;
-  background-image: 
-      radial-gradient(at 0% 0%, rgba(13, 204, 242, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(13, 204, 242, 0.1) 0px, transparent 50%),
-      radial-gradient(at 50% 50%, #101f22 0px, transparent 100%);
-  background-attachment: fixed;
+  @apply bg-[#101622] text-slate-100 font-sans antialiased;
   min-height: 100vh;
 }
 
@@ -36,78 +45,86 @@ h1, h2, h3, h4, h5, h6 {
   @apply font-bold tracking-tight;
 }
 
-h1 {
-  @apply text-3xl md:text-4xl lg:text-5xl;
-}
+/* ──────────────────────────────────────────────────────────
+   Custom Scrollbar
+   ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #1e293b; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-h2 {
-  @apply text-2xl md:text-3xl;
-}
+/* ──────────────────────────────────────────────────────────
+   Color Utility Aliases  (compatible with old class names)
+   ────────────────────────────────────────────────────────── */
+.bg-primary    { @apply bg-[#135bec]; }
+.text-primary  { @apply text-[#135bec]; }
+.border-primary { @apply border-[#135bec]; }
+.text-accent   { @apply text-[#10b981]; }
 
-h3 {
-  @apply text-xl md:text-2xl;
-}
-
-/* Utility Classes matching old names for compatibility */
-.bg-primary { @apply bg-[#0dccf2]; }
-.text-primary { @apply text-[#0dccf2]; }
-.border-primary { @apply border-[#0dccf2]; }
-.text-accent { @apply text-[#10b981]; }
-
-/* Crystal/Glass UI Components */
-
+/* ──────────────────────────────────────────────────────────
+   Glass / Card Components
+   ────────────────────────────────────────────────────────── */
 .glass-panel {
-  @apply bg-[#101f22]/60 backdrop-blur-xl border border-white/10;
+  @apply bg-[#111722]/60 backdrop-blur-xl border border-white/10;
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 .glass-card {
-  @apply bg-[#101f22]/60 backdrop-blur-xl border border-white/10 border-t-white/15 border-l-white/15 rounded-2xl relative overflow-hidden;
-  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.3);
+  @apply bg-[#111722]/60 backdrop-blur-xl border border-white/10 border-t-white/15 border-l-white/15 rounded-2xl relative overflow-hidden;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 .glass-input {
-  @apply w-full bg-transparent border-0 border-b-2 border-white/10 text-white placeholder-slate-600 transition-all duration-300 font-light focus:outline-none focus:ring-0 focus:border-[#0dccf2];
+  @apply w-full bg-transparent border-0 border-b-2 border-white/10 text-white placeholder-slate-600 transition-all duration-300 font-light focus:outline-none focus:ring-0 focus:border-[#135bec];
   backdrop-filter: blur(10px);
 }
 
 .glass-nav {
-  @apply bg-[#050f11]/80 backdrop-blur-md border-b border-[#0dccf2]/10;
+  @apply bg-[#111722]/80 backdrop-blur-md border-b border-slate-800;
 }
 
-/* Button Variants */
+/* ──────────────────────────────────────────────────────────
+   Button Variants
+   ────────────────────────────────────────────────────────── */
 .btn-primary {
   @apply relative overflow-hidden rounded-lg px-6 py-3 flex items-center justify-center transition-all duration-300;
-  @apply bg-[#0dccf2]/20 hover:bg-[#0dccf2]/30 border border-[#0dccf2]/30;
-  @apply text-cyan-50 font-bold tracking-widest uppercase text-sm;
-  box-shadow: 0 0 20px rgba(13,204,242,0.15);
+  @apply bg-[#135bec] hover:bg-[#0f4fd4] border border-[#135bec];
+  @apply text-white font-bold tracking-wide text-sm;
+  box-shadow: 0 0 20px rgba(19, 91, 236, 0.2);
 }
-
 .btn-primary:hover {
-  box-shadow: 0 0 30px rgba(13,204,242,0.4);
+  box-shadow: 0 0 30px rgba(19, 91, 236, 0.4);
 }
 
-/* Text Utilities */
+/* ──────────────────────────────────────────────────────────
+   Text Utilities
+   ────────────────────────────────────────────────────────── */
 .text-gradient {
-  background: linear-gradient(to right, #ffffff, #0dccf2);
+  background: linear-gradient(to right, #ffffff, #135bec);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .text-glow {
-  text-shadow: 0 0 10px rgba(13, 204, 242, 0.5);
+  text-shadow: 0 0 12px rgba(19, 91, 236, 0.6);
 }
 
-/* Difficulty Colors */
-.text-difficulty-easy { @apply text-[#0dccf2]; }
-.bg-difficulty-easy { @apply bg-[#0dccf2]; }
+/* ──────────────────────────────────────────────────────────
+   Difficulty Badge Colors
+   ────────────────────────────────────────────────────────── */
+.text-difficulty-easy   { @apply text-emerald-400; }
+.bg-difficulty-easy     { @apply bg-emerald-400; }
 
-.text-difficulty-medium { @apply text-[#fbbf24]; }
-.bg-difficulty-medium { @apply bg-[#fbbf24]; }
+.text-difficulty-medium { @apply text-amber-400; }
+.bg-difficulty-medium   { @apply bg-amber-400; }
 
-.text-difficulty-hard { @apply text-[#f97316]; }
-.bg-difficulty-hard { @apply bg-[#f97316]; }
+.text-difficulty-hard   { @apply text-rose-400; }
+.bg-difficulty-hard     { @apply bg-rose-400; }
 
-.shadow-crystal { 
-  box-shadow: 0 8px 32px 0 rgba(13, 204, 242, 0.1); 
+/* ──────────────────────────────────────────────────────────
+   Shadows
+   ────────────────────────────────────────────────────────── */
+.shadow-crystal {
+  box-shadow: 0 8px 32px 0 rgba(19, 91, 236, 0.12);
 }

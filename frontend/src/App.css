@@ -1,2 +1,28 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
+.glass-panel {
+    background: rgba(13, 204, 242, 0.03);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(13, 204, 242, 0.15);
+}
+.glass-panel:hover {
+    border-color: rgba(13, 204, 242, 0.3);
+}
+.glow-border:focus-within {
+    box-shadow: 0 0 15px rgba(13, 204, 242, 0.2);
+    border-color: #0dccf2;
+}
+.custom-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+    background: rgba(13, 204, 242, 0.05);
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: rgba(13, 204, 242, 0.2);
+    border-radius: 10px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(13, 204, 242, 0.4);
+}
