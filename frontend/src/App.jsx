@@ -8,7 +8,10 @@ import Admin from './pages/AdminPanel'
 import Dashboard from './pages/Dashboard'
 import { checkAuthStatus} from "./app/features/auth/authSlice.js"
 import CodeEditorPage from './pages/CodeEditorPage'
+<<<<<<< HEAD
 import FloatingChatbot from './components/FloatingChatbot'
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 
 
 // --- Main App Component ---
@@ -30,6 +33,7 @@ const App = () => {
 
   // 2. Routing Logic
   return (
+<<<<<<< HEAD
     <>
       <Routes>
         <Route 
@@ -54,6 +58,29 @@ const App = () => {
       </Routes>
       {isAuthenticated && <FloatingChatbot />}
     </>
+=======
+    <Routes>
+      <Route 
+        path='/' 
+        element={isAuthenticated ? <Home /> : <Navigate to="/login" />} 
+      />
+      <Route 
+        path='/dashboard' 
+        element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} 
+      />
+      <Route 
+        path='/login' 
+        element={!isAuthenticated ? <Login /> : <Navigate to="/" />} 
+      />
+      <Route 
+        path='/signup' 
+        element={!isAuthenticated ? <Signup /> : <Navigate to="/" />} 
+      />
+      <Route path="/admin" element={isAuthenticated&& user?.role==="admin" ?<Admin/>: <Navigate to="/login" />} />
+      <Route path="/editor/:id" element={ isAuthenticated ? <CodeEditorPage /> : <Navigate to="/login" />} />
+      <Route path="/problems/:id" element={ isAuthenticated ? <CodeEditorPage /> : <Navigate to="/login" />} />
+    </Routes>
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
   )
 }
 

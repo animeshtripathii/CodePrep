@@ -8,7 +8,10 @@ const cookieparser = require('cookie-parser');
 const redisClient = require('./config/redis');
 const authRouter = require('./routes/authRoutes');
 const codeSubmitRouter = require('./routes/submissionRoutes');
+<<<<<<< HEAD
 const chatRouter = require('./routes/chatRoute');
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 
 const app = express();
 app.use(cors({
@@ -21,7 +24,10 @@ app.use(cookieparser());
 app.use('/user', authRouter);
 app.use('/problem', problemRouter);
 app.use('/submission', codeSubmitRouter);
+<<<<<<< HEAD
 app.use('/chat', chatRouter);
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 
 const InitializeServer = async () => {
   try {

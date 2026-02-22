@@ -4,7 +4,10 @@
 
 @import "tailwindcss";
 @plugin "daisyui";
+<<<<<<< HEAD
 @plugin "@tailwindcss/typography";
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 
 @theme {
   --font-sans: "Space Grotesk", sans-serif;

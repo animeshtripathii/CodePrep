@@ -7,7 +7,11 @@ const register = async (req, res) => {
     const { newUser, token } = await authService.registerUser(req.body);
 
     res.cookie('token', token, {
+<<<<<<< HEAD
       maxAge: 24 * 60 * 60 * 1000 // 1 day
+=======
+      maxAge: 60 * 60 * 1000 // 1 hour
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
     });
 
     const reply = {
@@ -30,7 +34,11 @@ const login = async (req, res) => {
     const { existingUser, token } = await authService.loginUser(req.body.emailId, req.body.password);
 
     res.cookie('token', token, {
+<<<<<<< HEAD
       maxAge: 24 * 60 * 60 * 1000
+=======
+      maxAge: 60 * 60 * 1000 // 1 hour
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
     });
 
     const reply = {
@@ -102,7 +110,10 @@ const deleteProfile = async (req, res) => {
   try {
     const userId = req.result._id;
     await authService.deleteUserProfile(userId);
+<<<<<<< HEAD
     res.cookie('token', null, { expires: new Date(Date.now()) });
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
     res.status(200).json({ message: "Profile deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete profile", error: err.message });
@@ -131,6 +142,7 @@ const checkAuth = (req, res) => {
   res.json({ message: "You are authenticated", user: reply });
 };
 
+<<<<<<< HEAD
 const updateProfile = async (req, res) => {
   try {
     const userId = req.result._id;
@@ -150,3 +162,6 @@ const updateProfile = async (req, res) => {
   }
 };
 module.exports = { register, login, logout, getProfile, adminRegister, deleteProfile, getDashboardStats, checkAuth, updateProfile };
+=======
+module.exports = { register, login, logout, getProfile, adminRegister, deleteProfile, getDashboardStats, checkAuth };
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1

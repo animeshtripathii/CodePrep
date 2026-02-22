@@ -25,21 +25,30 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.71.1",
     "react-hot-toast": "^2.6.0",
+<<<<<<< HEAD
     "react-markdown": "^10.1.0",
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
     "react-redux": "^9.2.0",
     "react-resizable-panels": "^4.6.4",
     "react-router": "^7.13.0",
     "react-router-dom": "^7.13.0",
     "recharts": "^3.7.0",
     "redux": "^5.0.1",
+<<<<<<< HEAD
     "remark-gfm": "^4.0.1",
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
     "tailwind-merge": "^3.4.1",
     "tailwindcss": "^4.1.18",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+<<<<<<< HEAD
     "@tailwindcss/typography": "^0.5.19",
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",

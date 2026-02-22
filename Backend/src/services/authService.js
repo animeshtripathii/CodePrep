@@ -197,6 +197,7 @@ const getDashboardStatsService = async (userId) => {
     };
 };
 
+<<<<<<< HEAD
 const updateProfile = async (userId, updateData) => {
     const allowedFields = ['firstName', 'lastName', 'emailId', 'password'];
     const updateFields = {};
@@ -215,6 +216,8 @@ const updateProfile = async (userId, updateData) => {
     return updatedUser;
 };
 
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 module.exports = {
     registerUser,
     loginUser,
@@ -222,6 +225,10 @@ module.exports = {
     verifyUserProfile,
     registerAdmin,
     deleteUserProfile,
+<<<<<<< HEAD
     getDashboardStatsService,
     updateProfile
+=======
+    getDashboardStatsService
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 };

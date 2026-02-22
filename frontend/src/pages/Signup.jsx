@@ -5,7 +5,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { z } from "zod";
 import { registerUser } from ".././app/features/auth/authSlice.js";
+<<<<<<< HEAD
 import { toast } from "react-hot-toast";
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 
 const signupSchema = z
   .object({
@@ -30,7 +33,11 @@ function Signup() {
   const [showConfirm, setShowConfirm] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+<<<<<<< HEAD
   const { isAuthenticated, loading, error } = useSelector((state) => state.auth);
+=======
+  const { isAuthenticated, loading } = useSelector((state) => state.auth);
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(signupSchema),
@@ -40,12 +47,15 @@ function Signup() {
     if (isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (error) {
       toast.error(error);
     }
   }, [error]);
 
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
   const submitData = (data) => {
     dispatch(registerUser(data));
   };

@@ -1,15 +1,23 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import axiosClient from '../utils/axiosClient';
+<<<<<<< HEAD
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../app/features/auth/authSlice';
+=======
+import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import {
     PieChart, Pie, Cell,
     ResponsiveContainer, Tooltip,
 } from 'recharts';
+<<<<<<< HEAD
 import { toast } from 'react-hot-toast';
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 
 
 /* ── helpers ──────────────────────────────────────── */
@@ -31,13 +39,17 @@ const DAYS   = ['Mon','','Wed','','Fri','','Sun'];
 /* ─────────────────────────────────────────────────── */
 const Dashboard = () => {
     const { user: authUser } = useSelector(s => s.auth);
+<<<<<<< HEAD
     const dispatch = useDispatch();
     const navigate = useNavigate();
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
     const [stats, setStats]   = useState(null);
     const [solved, setSolved] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError]   = useState(null);
 
+<<<<<<< HEAD
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editData, setEditData] = useState({ firstName: '', lastName: '', password: '' });
 
@@ -72,6 +84,8 @@ const Dashboard = () => {
         }
     };
 
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
     useEffect(() => {
         const load = async () => {
             try {
@@ -235,6 +249,7 @@ const Dashboard = () => {
                                         Admin Panel
                                     </Link>
                                 )}
+<<<<<<< HEAD
                                 <button onClick={() => {
                                     setEditData({ firstName: user.firstName || '', lastName: user.lastName || '', password: '' });
                                     setIsEditModalOpen(true);
@@ -242,6 +257,8 @@ const Dashboard = () => {
                                     <span className="material-symbols-outlined text-[18px]">edit</span>
                                     Edit Profile
                                 </button>
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
                                 <button className="flex-1 md:flex-none h-10 px-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 text-sm font-bold transition-all flex items-center justify-center gap-2">
                                     <span className="material-symbols-outlined text-[18px]">share</span>
                                     Share
@@ -508,6 +525,7 @@ const Dashboard = () => {
                 </div>
             </main>
 
+<<<<<<< HEAD
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-[#1e293b] w-full max-w-md rounded-2xl border border-slate-700 shadow-2xl overflow-hidden flex flex-col">
@@ -556,6 +574,8 @@ const Dashboard = () => {
                 </div>
             )}
 
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
             <Footer />
         </div>
     );

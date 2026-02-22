@@ -19,7 +19,10 @@ const submitCode = async (req, res) => {
 };
 
 const runCode = async (req, res) => {
+<<<<<<< HEAD
     console.log("Received run code request with body:", req.body);
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
     try {
         const userId = req.result._id;
         const problemId = req.params.problemId;
@@ -37,6 +40,7 @@ const runCode = async (req, res) => {
     }
 };
 
+<<<<<<< HEAD
 const getSubmissions = async (req, res) => {
     try {
         const userId = req.result._id;
@@ -49,3 +53,6 @@ const getSubmissions = async (req, res) => {
 };
 
 module.exports = { submitCode, runCode, getSubmissions };
+=======
+module.exports = { submitCode, runCode };
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1

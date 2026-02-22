@@ -5,7 +5,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { loginUser } from ".././app/features/auth/authSlice.js";
+<<<<<<< HEAD
 import { toast } from "react-hot-toast";
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 
 const loginSchema = z.object({
   emailId: z.string().email({ message: "Invalid email address" }),
@@ -22,7 +25,11 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+<<<<<<< HEAD
   const { loading, isAuthenticated, error } = useSelector((state) => state.auth);
+=======
+  const { loading, isAuthenticated } = useSelector((state) => state.auth);
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
@@ -32,12 +39,15 @@ function Login() {
     if (isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (error) {
       toast.error(error);
     }
   }, [error]);
 
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
   const submitData = (data) => {
     dispatch(loginUser(data));
   };
