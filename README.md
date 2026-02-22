@@ -1,4 +1,4 @@
-# CodePrep Project README
+# CodePrep 
 
 ## Overview
 CodePrep is a full-stack project designed to facilitate coding practice, problem submission, and real-time chat. It consists of a Node.js/Express backend and a React frontend, using Zod for form validation and Redux Toolkit for state management.
@@ -103,3 +103,4 @@ Feel free to contribute via pull requests. See LICENSE for details.
 
 ## Contact
 For support or questions, open an issue or contact the maintainer.
+
