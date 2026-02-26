@@ -7,6 +7,9 @@ const register = async (req, res) => {
     const { newUser, token } = await authService.registerUser(req.body);
 
     res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
       maxAge: 60 * 60 * 1000 // 1 hour
     });
 
@@ -32,6 +35,9 @@ const login = async (req, res) => {
     const { existingUser, token } = await authService.loginUser(req.body.emailId, req.body.password);
 
     res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
       maxAge: 60 * 60 * 1000 // 1 hour
     });
 
@@ -57,7 +63,7 @@ const logout = async (req, res) => {
   try {
     const { token } = req.cookies;
     await authService.logoutUser(token);
-    res.cookie('token', null, { expires: new Date(Date.now()) });
+    res.cookie('token', null, { httpOnly: true, secure: true, sameSite: 'none', expires: new Date(Date.now()) });
     res.status(200).json({ message: 'Logout successful' });
   } catch (error) {
     res.status(503).json({ message: 'Logout failed', error: error.message });
@@ -89,8 +95,8 @@ const adminRegister = async (req, res) => {
 
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 60 * 60 * 1000 // 1 hour
     });
 
