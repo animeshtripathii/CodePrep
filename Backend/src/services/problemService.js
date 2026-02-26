@@ -1,6 +1,9 @@
 const problemModel = require('../models/problem');
 const User = require('../models/user');
+<<<<<<< HEAD
 const Video = require('../models/videoSolution');
+=======
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
 const { getLanguageId, submitBatch, submitToken } = require('../utils/problemSubmissionUtility');
 
 const createNewProblem = async (problemData, userId) => {
@@ -130,11 +133,16 @@ const deleteProblemById = async (problemId) => {
 };
 
 const getProblem = async (problemId) => {
+<<<<<<< HEAD
     const DsaProblem = await problemModel.findById(problemId).select('title description tags difficulty visibleTestCases hiddenTestCases referenceSolution startCode videoUrl').lean();
+=======
+    const DsaProblem = await problemModel.findById(problemId).select('title description tags difficulty visibleTestCases hiddenTestCases referenceSolution startCode');
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
 
     if (!DsaProblem) {
         throw new Error("Problem not found");
     }
+<<<<<<< HEAD
     //video fetch this problem id
     const video = await Video.findOne({ problemId: problemId })
     if (video) {
@@ -146,6 +154,9 @@ const getProblem = async (problemId) => {
     } else {
         return DsaProblem;
     }
+=======
+    return DsaProblem;
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
 };
 
 const getAllProblems = async (queryData) => {

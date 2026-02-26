@@ -13,10 +13,24 @@ const getLanguageId = (lang) => {
 
 // 1. Submit Batch Function (Updated to WAIT for results)
 const submitBatch = async (submissions) => {
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    console.log("Submitting batch to Judge0 with submissions:", submissions);
+    const options = {
+        method: 'POST',
+        // IMPORTANT: Added wait=true to get results immediately
+        url: 'https://judge029.p.rapidapi.com/submissions/batch', 
+=======
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
     const options = {
         method: 'POST',
         // IMPORTANT: Added wait=true to get results immediately
         url: 'https://judge029.p.rapidapi.com/submissions/batch?base64_encoded=false&wait=true', 
+<<<<<<< HEAD
+=======
+>>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
         headers: {
             'x-rapidapi-key': process.env.JUDGE0_API, // Ensure this is set in .env
             'x-rapidapi-host': 'judge029.p.rapidapi.com',

@@ -5,12 +5,20 @@ const codingChat = async (req, res) => {
         // Fallback checks just in case the frontend named the variable differently
         const message = req.body.message || req.body.text || req.body.prompt;
         const { code, language, problemTitle, problemDescription } = req.body;
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
         if (!message || message.trim() === "") {
             return res.status(400).json({ error: "Message is required." });
         }
 
+<<<<<<< HEAD
         const result = await chatService.codingChat(message, code, language, problemTitle, problemDescription, req.result);
+=======
+        const result = await chatService.codingChat(message, code, language, problemTitle, problemDescription);
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -21,7 +29,11 @@ const websiteChat = async (req, res) => {
     try {
         // Fallback checks just in case the frontend named the variable differently
         const message = req.body.message || req.body.text || req.body.prompt;
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
         if (!message || message.trim() === "") {
             return res.status(400).json({ error: "Message is required in the request body." });
         }

@@ -42,16 +42,23 @@ const problemSchema = new Schema({
       initialCode: { type: String, required: true }, // Fixed typo: intialCode -> initialCode
     },
   ],
+<<<<<<< HEAD
   referenceSolution: [
+=======
+  referenceSolution: [ 
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
     {
       language: { type: String, required: true },
       completeCode: { type: String, required: true },
     },
   ],
+<<<<<<< HEAD
   videoUrl: {
     type: String,
     trim: true
   },
+=======
+>>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
   problemCreator: {
     type: Schema.Types.ObjectId,
     ref: "user",
