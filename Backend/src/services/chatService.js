@@ -1,11 +1,8 @@
 const { GoogleGenAI } = require("@google/genai");
 const submissionModel = require('../models/submission');
-<<<<<<< HEAD
-// require('dotenv').config();
 
 const ai = new GoogleGenAI({
     apiKey: process.env.ChatBot_API
-
 });
 
 
@@ -16,17 +13,7 @@ const codingChat = async (message, code, language, problemTitle, problemDescript
     if (user.tokens <= 0) {
         throw new Error("INSUFFICIENT_TOKENS");
     }
-=======
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.ChatBot_API
-});
-
-/**
- * 1. Chatbot Alone (DSA Tutor)
- */
-const codingChat = async (message, code, language, problemTitle, problemDescription) => {
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
     if (!message || String(message).trim() === "") {
         return "I didn't quite catch that. Could you please type your question again?";
     }
@@ -64,13 +51,10 @@ You are an expert Data Structures and Algorithms (DSA) tutor. Your primary goal 
                 systemInstruction: systemInstruction
             }
         });
-<<<<<<< HEAD
 
         user.tokens -= 20;
         await user.save();
 
-=======
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
         return response.text;
     } catch (error) {
         console.error("Gemini AI codingChat error:", error);
@@ -82,18 +66,13 @@ You are an expert Data Structures and Algorithms (DSA) tutor. Your primary goal 
  * 2. Function Calling Model (Website Support Chatbot)
  */
 const websiteChat = async (message, user) => {
-<<<<<<< HEAD
     if (user.tokens <= 0) {
         throw new Error("INSUFFICIENT_TOKENS");
     }
-=======
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
 
     if (!message || String(message).trim() === "") {
         return "I didn't quite catch that. Could you please type your question again?";
     }
-
-
 
     const systemInstruction = `**Role & Identity**
 You are a helpful customer support and general assistant for the CodePrep platform. 
@@ -133,7 +112,6 @@ You have access to tools that can fetch live user statistics and recent submissi
     });
 
     try {
-        // Send the validated string message wrapped in the required object structure
         let response = await chatSession.sendMessage({ message: String(message) });
 
         if (response.functionCalls && response.functionCalls.length > 0) {
@@ -186,12 +164,9 @@ You have access to tools that can fetch live user statistics and recent submissi
             });
         }
 
-<<<<<<< HEAD
         user.tokens -= 20;
         await user.save();
 
-=======
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
         return response.text;
     } catch (error) {
         console.error("Gemini AI websiteChat error:", error);

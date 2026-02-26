@@ -2,13 +2,8 @@ const problemService = require('../services/problemService');
 
 const createProblem = async (req, res) => {
     try {
-<<<<<<< HEAD
         const problem = await problemService.createNewProblem(req.body, req.result._id);
         res.status(201).json({ message: "Problem created successfully", problem });
-=======
-        await problemService.createNewProblem(req.body, req.result._id);
-        res.status(201).json({ message: "Problem created successfully" });
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
     } catch (error) {
         if (error.message.includes("Unsupported language") || error.message.includes("Wrong Answer") || error.message.includes("Time Limit") || error.message.includes("Compilation Error")) {
             return res.status(400).json({ message: error.message });

@@ -16,7 +16,7 @@ const problemSchema = new Schema({
   difficulty: {
     type: String,
     required: true,
-    enum: ["easy", "medium", "hard"], // Lowercase to match your JSON
+    enum: ["easy", "medium", "hard"],
   },
   tags: {
     type: [String],
@@ -39,26 +39,19 @@ const problemSchema = new Schema({
   startCode: [
     {
       language: { type: String, required: true },
-      initialCode: { type: String, required: true }, // Fixed typo: intialCode -> initialCode
+      initialCode: { type: String, required: true },
     },
   ],
-<<<<<<< HEAD
   referenceSolution: [
-=======
-  referenceSolution: [ 
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
     {
       language: { type: String, required: true },
       completeCode: { type: String, required: true },
     },
   ],
-<<<<<<< HEAD
   videoUrl: {
     type: String,
     trim: true
   },
-=======
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
   problemCreator: {
     type: Schema.Types.ObjectId,
     ref: "user",

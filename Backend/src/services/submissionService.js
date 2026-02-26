@@ -85,30 +85,15 @@ const processCodeSubmission = async (userId, problemId, code, language, reqResul
         }
     }
 
-<<<<<<< HEAD
     return { message: "Code submitted successfully", submission: submittedResult };
-=======
-<<<<<<< HEAD
-    return { message: "Code submitted successfully", submission: submittedResult };
-=======
-    return { message: "Code submitted successfully" };
->>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
 };
 
 const executeCode = async (userId, problemId, code, language) => {
     if (!code || !language || !problemId || !userId) {
         throw new Error("Some required fields are missing");
     }
-<<<<<<< HEAD
     console.log("executeCode is called");
-=======
-<<<<<<< HEAD
-    console.log("executeCode is called");
-=======
 
->>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
     const problem = await problemModel.findById(problemId);
 
     const languageId = getLanguageId(language);
@@ -138,10 +123,6 @@ const executeCode = async (userId, problemId, code, language) => {
     return { testResult };
 };
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
 const getSubmissionsForProblem = async (userId, problemId) => {
     const submissions = await submissionModel.find({ userId, problemId }).sort({ createdAt: -1 });
     return submissions;
@@ -151,12 +132,4 @@ module.exports = {
     processCodeSubmission,
     executeCode,
     getSubmissionsForProblem
-<<<<<<< HEAD
-=======
-=======
-module.exports = {
-    processCodeSubmission,
-    executeCode
->>>>>>> 7b7a4e10a74f2c78a63df608b24ef7c1a39337f1
->>>>>>> d0be5095442f234e898dc4470caea6ce6adfdc03
 };
