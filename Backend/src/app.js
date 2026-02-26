@@ -21,6 +21,9 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieparser());
+app.use('/',(req,res)=>{
+    res.send("api is running");
+} )
 app.use('/user', authRouter);
 app.use('/problem', problemRouter);
 app.use('/submission', codeSubmitRouter);
