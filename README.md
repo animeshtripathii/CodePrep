@@ -696,4 +696,4 @@ export default configureStore({
 
 ## License
 
-This project is for educational and portfolio purposes.
+This project is for educational and portfolio purpose.
