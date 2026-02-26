@@ -15,15 +15,15 @@ const planRouter = require('./routes/planRoutes');
 const app = express();
 app.use(express.json());
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL,
     credentials: true, // Allow cookies to be sent
 }));
 
 app.use(express.json());
 app.use(cookieparser());
-app.use('/',(req,res)=>{
+app.get('/', (req, res) => {
     res.send("api is running");
-} )
+})
 app.use('/user', authRouter);
 app.use('/problem', problemRouter);
 app.use('/submission', codeSubmitRouter);
