@@ -14,17 +14,20 @@ const InitializeServer = async () => {
     console.log("Connected to Redis successfully");
     console.log("Connected to MongoDB successfully");
 
-    const PORT = process.env.PORT || 5000;
+    if (!process.env.VERCEL) {
+      const PORT = process.env.PORT || 5000;
+      const httpServer = http.createServer(app);
+      initSocketServer(httpServer);
 
-    const httpServer = http.createServer(app);
-    initSocketServer(httpServer);
-
-    httpServer.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
+      httpServer.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+    }
   } catch (err) {
     console.error("Server Initialization Error:", err.message);
   }
 };
 
 InitializeServer();
+
+module.exports = app;

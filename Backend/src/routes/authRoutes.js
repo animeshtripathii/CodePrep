@@ -7,7 +7,8 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 //userRegister
 authRouter.post('/register', register);
 //login
-authRouter.post('/login', login);
+const loginSignupLimiter = require('../middleware/loginSignupLimiter');
+authRouter.post('/login', loginSignupLimiter, login);
 
 //logout
 authRouter.post('/logout', userMiddleware, logout);
@@ -26,5 +27,6 @@ authRouter.get("/check", userMiddleware, checkAuth);
 // Password Reset (public — no auth needed)
 authRouter.post('/forgot-password', forgotPassword);
 authRouter.post('/reset-password/:token', resetPassword);
+authRouter.post('/signup', loginSignupLimiter, register);
 
 module.exports = authRouter;

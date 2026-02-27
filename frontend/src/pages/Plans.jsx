@@ -35,6 +35,17 @@ const Plans = () => {
             return;
         }
 
+        toast("Coming soon!", {
+            icon: '🚀',
+            style: {
+                borderRadius: '10px',
+                background: '#333',
+                color: '#fff',
+            },
+        });
+        return;
+
+        /*
         try {
             setProcessingPlanId(planId);
             
@@ -91,6 +102,7 @@ console.log("RAZORPAY OPTIONS:", options);
             toast.error("Failed to initiate payment. Please try again later.");
             setProcessingPlanId(null);
         }
+        */
     };
 
     return (

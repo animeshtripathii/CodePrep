@@ -42,6 +42,12 @@ const problemSchema = new Schema({
       initialCode: { type: String, required: true },
     },
   ],
+  driverCode: [
+    {
+      language: { type: String, required: true },
+      code: { type: String, required: true },
+    },
+  ],
   referenceSolution: [
     {
       language: { type: String, required: true },

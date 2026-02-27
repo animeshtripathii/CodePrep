@@ -15,8 +15,16 @@ const createNewProblem = async (problemData, userId) => {
             throw new Error(`Unsupported language: ${language}`);
         }
 
+        let finalCode = completeCode;
+        if (problemData.driverCode && problemData.driverCode.length > 0) {
+            const driver = problemData.driverCode.find(dc => dc.language.toLowerCase() === language.toLowerCase());
+            if (driver && driver.code && driver.code.includes('{{USER_CODE}}')) {
+                finalCode = driver.code.replace('{{USER_CODE}}', completeCode);
+            }
+        }
+
         const submission = visibleTestCases.map((testCase) => ({
-            source_code: completeCode,
+            source_code: finalCode,
             language_id: languageId,
             stdin: testCase.input,
             expected_output: testCase.output
@@ -77,8 +85,16 @@ const updateExistingProblem = async (problemId, problemData) => {
             throw new Error(`Unsupported language: ${language}`);
         }
 
+        let finalCode = completeCode;
+        if (problemData.driverCode && problemData.driverCode.length > 0) {
+            const driver = problemData.driverCode.find(dc => dc.language.toLowerCase() === language.toLowerCase());
+            if (driver && driver.code && driver.code.includes('{{USER_CODE}}')) {
+                finalCode = driver.code.replace('{{USER_CODE}}', completeCode);
+            }
+        }
+
         const submission = visibleTestCases.map((testCase) => ({
-            source_code: completeCode,
+            source_code: finalCode,
             language_id: languageId,
             stdin: testCase.input,
             expected_output: testCase.output

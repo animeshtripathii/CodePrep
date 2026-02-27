@@ -46,7 +46,7 @@ const userSchema = new Schema({
     },
     tokens: {
         type: Number,
-        default: 50,
+        default: 100,
     },
     resetPasswordToken: {
         type: String,

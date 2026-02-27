@@ -218,7 +218,8 @@ const forgotPassword = async (emailId) => {
     await existingUser.save();
 
     // Build the reset URL (raw token goes in the URL, hash stays in DB)
-    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+    const frontendUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, '') : 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
     // Send the email
     await sendResetPasswordEmail(existingUser.emailId, resetUrl);

@@ -48,6 +48,10 @@ const schema = z.object({
         language: z.string().min(1, 'Language is required'),
         initialCode: z.string().min(1, 'Initial code is required'),
     })),
+    driverCode: z.array(z.object({
+        language: z.string().min(1, 'Language is required'),
+        code: z.string().min(1, 'Driver code is required'),
+    })),
     referenceSolution: z.array(z.object({
         language: z.string().min(1, 'Language is required'),
         completeCode: z.string().min(1, 'Complete code is required'),
@@ -93,6 +97,7 @@ const AdminPanel = () => {
                 visibleTestCases: [{ input: '', output: '', explanation: '' }],
                 hiddenTestCases: [{ input: '', output: '' }],
                 startCode: [{ language: 'python', initialCode: '' }],
+                driverCode: [{ language: 'python', code: '' }],
                 referenceSolution: [{ language: 'python', completeCode: '' }],
                 videoUrl: '',
             },
@@ -104,6 +109,8 @@ const AdminPanel = () => {
         useFieldArray({ control, name: 'hiddenTestCases' });
     const { fields: startCodeFields, append: appendStart, remove: removeStart } =
         useFieldArray({ control, name: 'startCode' });
+    const { fields: driverCodeFields, append: appendDriver, remove: removeDriver } =
+        useFieldArray({ control, name: 'driverCode' });
     const { fields: refFields, append: appendRef, remove: removeRef } =
         useFieldArray({ control, name: 'referenceSolution' });
 
@@ -177,6 +184,7 @@ const AdminPanel = () => {
         visibleTestCases: [{ input: '', output: '', explanation: '' }],
         hiddenTestCases: [{ input: '', output: '' }],
         startCode: [{ language: 'python', initialCode: '' }],
+        driverCode: [{ language: 'python', code: '' }],
         referenceSolution: [{ language: 'python', completeCode: '' }],
         videoUrl: '',
     };
@@ -213,6 +221,9 @@ const AdminPanel = () => {
                 startCode: full.startCode?.length
                     ? full.startCode
                     : [{ language: 'python', initialCode: '' }],
+                driverCode: full.driverCode?.length
+                    ? full.driverCode
+                    : [{ language: 'python', code: '' }],
                 referenceSolution: full.referenceSolution?.length
                     ? full.referenceSolution
                     : [{ language: 'python', completeCode: '' }],
@@ -977,6 +988,54 @@ const AdminPanel = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => appendStart({ language: 'python', initialCode: '' })}
+                                                    className="w-full py-2.5 border border-dashed border-slate-300 bg-slate-50 rounded-lg text-slate-500 hover:text-green-700 hover:border-green-400 hover:bg-green-50 flex items-center justify-center gap-2 text-xs font-bold transition-all"
+                                                >
+                                                    <span className="material-symbols-outlined text-[16px]">add</span>
+                                                    Add Language
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Driver Code */}
+                                        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-6">
+                                            <h4 className="text-slate-900 font-bold mb-5 flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-green-600">settings_applications</span>
+                                                Driver Code (Judge0 Execution)
+                                            </h4>
+                                            <div className="text-xs text-slate-500 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                                Code here wraps the user's code for execution. Use <code className="font-bold text-slate-700 bg-white px-1 py-0.5 rounded border border-slate-300">{'{{USER_CODE}}'}</code> where the user's Start Code will be injected.
+                                            </div>
+                                            <div className="space-y-4">
+                                                {driverCodeFields.map((field, index) => (
+                                                    <div key={field.id} className="flex flex-col bg-slate-50 rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                                                        <div className="flex items-center justify-between px-4 py-2 bg-slate-100 border-b border-slate-200">
+                                                            <select
+                                                                {...register(`driverCode.${index}.language`)}
+                                                                className="bg-transparent text-xs text-slate-700 font-bold focus:outline-none cursor-pointer rounded"
+                                                            >
+                                                                <option value="c">C</option>
+                                                                <option value="c++">C++</option>
+                                                                <option value="java">Java</option>
+                                                                <option value="python">Python 3</option>
+                                                                <option value="javascript">JavaScript</option>
+                                                            </select>
+                                                            <button type="button" onClick={() => removeDriver(index)} className="text-slate-400 hover:text-red-500 transition-colors p-1 rounded hover:bg-slate-200">
+                                                                <span className="material-symbols-outlined text-[16px]">close</span>
+                                                            </button>
+                                                        </div>
+                                                        <textarea
+                                                            {...register(`driverCode.${index}.code`)}
+                                                            className="flex-1 p-4 bg-white font-mono text-xs text-slate-800 focus:outline-none resize-none leading-relaxed shadow-inner"
+                                                            rows={6}
+                                                            placeholder="#include <iostream>&#10;&#10;{{USER_CODE}}&#10;&#10;int main() { ... }"
+                                                            spellCheck={false}
+                                                        />
+                                                        {errors.driverCode?.[index]?.code && <span className="text-red-500 text-xs px-4 pb-3 font-medium">{errors.driverCode[index].code.message}</span>}
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => appendDriver({ language: 'python', code: '' })}
                                                     className="w-full py-2.5 border border-dashed border-slate-300 bg-slate-50 rounded-lg text-slate-500 hover:text-green-700 hover:border-green-400 hover:bg-green-50 flex items-center justify-center gap-2 text-xs font-bold transition-all"
                                                 >
                                                     <span className="material-symbols-outlined text-[16px]">add</span>

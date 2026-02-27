@@ -68,7 +68,8 @@ const DiscussionsPage = () => {
             return;
         }
 
-        const newSocket = io("http://localhost:3000", {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+        const newSocket = io(backendUrl, {
             auth: { token: jwtToken },
             withCredentials: true,
             transports: ['websocket']
