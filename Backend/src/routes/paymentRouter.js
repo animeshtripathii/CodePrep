@@ -6,6 +6,6 @@ const router = express.Router();
 
 router.post('/create-order', userMiddleware, createOrder);
 router.post('/verify-user-payment', userMiddleware, verifyPayment);
-router.post('/verify-payment', express.json(), paymentWebHook);
+router.post('/verify-payment',paymentWebHook);
 
 module.exports = router;

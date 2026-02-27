@@ -7,7 +7,10 @@ const register = async (req, res) => {
     const { newUser, token } = await authService.registerUser(req.body);
 
     res.cookie('token', token, {
-      maxAge: 60 * 60 * 1000 // 1 hour
+     httpOnly: true,
+  secure: true, // Required for Vercel (HTTPS)
+  sameSite: 'None', // Required if frontend and backend are on different Vercel domains
+  maxAge: 60 * 60 * 1000
     });
 
     const reply = {
@@ -32,7 +35,10 @@ const login = async (req, res) => {
     const { existingUser, token } = await authService.loginUser(req.body.emailId, req.body.password);
 
     res.cookie('token', token, {
-      maxAge: 60 * 60 * 1000 // 1 hour
+   httpOnly: true,
+  secure: true, // Required for Vercel (HTTPS)
+  sameSite: 'None', // Required if frontend and backend are on different Vercel domains
+  maxAge: 60 * 60 * 1000
     });
 
     const reply = {
