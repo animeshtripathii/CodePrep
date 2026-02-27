@@ -1,28 +1,17 @@
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
-
 const app = require("./app");
 const connectDB = require('./config/db');
 const redisClient = require('./config/redis');
-const http = require('http');
-const { initSocketServer } = require('./sockets/chatHandler');
 
-
+// Database connection logic
 connectDB().catch(console.error);
 
+// Redis connection - use the existing client
 if (!redisClient.isOpen) {
   redisClient.connect()
-    .then(() => console.log("Connected to Redis successfully (Vercel/Local)"))
-    .catch(err => console.error("Redis Connection Error:", err.message));
-}
-if (!process.env.VERCEL) {
-  const PORT = process.env.PORT || 5000;
-  const httpServer = http.createServer(app);
-  initSocketServer(httpServer);
-
-  httpServer.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
+    .then(() => console.log("Connected to Redis"))
+    .catch(err => console.error("Redis Error:", err.message));
 }
 
+// IMPORTANT: Do NOT use httpServer.listen() for Vercel.
+// Export the app for Vercel's engine to pick up.
 module.exports = app;
