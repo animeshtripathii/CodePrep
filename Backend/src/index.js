@@ -7,27 +7,22 @@ const redisClient = require('./config/redis');
 const http = require('http');
 const { initSocketServer } = require('./sockets/chatHandler');
 
-const InitializeServer = async () => {
-  try {
-    await connectDB();
-    await redisClient.connect();
-    console.log("Connected to Redis successfully");
-    console.log("Connected to MongoDB successfully");
 
-    if (!process.env.VERCEL) {
-      const PORT = process.env.PORT || 5000;
-      const httpServer = http.createServer(app);
-      initSocketServer(httpServer);
+connectDB().catch(console.error);
 
-      httpServer.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-      });
-    }
-  } catch (err) {
-    console.error("Server Initialization Error:", err.message);
-  }
-};
+if (!redisClient.isOpen) {
+  redisClient.connect()
+    .then(() => console.log("Connected to Redis successfully (Vercel/Local)"))
+    .catch(err => console.error("Redis Connection Error:", err.message));
+}
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  const httpServer = http.createServer(app);
+  initSocketServer(httpServer);
 
-InitializeServer();
+  httpServer.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 
 module.exports = app;
