@@ -29,5 +29,8 @@ app.use("/video", videoRouter);
 app.use("/payment", paymentRouter);
 app.use("/plan", planRouter);
 app.use("/discussion", require('./routes/discussionRoutes'));
+app.get('/', (req, res) => {
+    res.status(200).json({ status: 'alive', message: 'CodePrep API is running!' });
+});
 
 module.exports = app;
