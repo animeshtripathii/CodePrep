@@ -3,11 +3,11 @@ const authRouter = express.Router();
 const { register, login, logout, getProfile, adminRegister, deleteProfile, getDashboardStats, checkAuth, forgotPassword, resetPassword } = require('../controllers/authController');
 const userMiddleware = require('../middleware/userMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
+const loginSignupLimiter = require('../middleware/loginSignupLimiter');
 
 //userRegister
 authRouter.post('/register', register);
 //login
-const loginSignupLimiter = require('../middleware/loginSignupLimiter');
 authRouter.post('/login', loginSignupLimiter, login);
 
 //logout

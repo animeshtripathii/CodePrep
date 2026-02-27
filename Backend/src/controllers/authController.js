@@ -6,11 +6,12 @@ const register = async (req, res) => {
     validate(req.body);
     const { newUser, token } = await authService.registerUser(req.body);
 
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
-     httpOnly: true,
-  secure: true, // Required for Vercel (HTTPS)
-  sameSite: 'None', // Required if frontend and backend are on different Vercel domains
-  maxAge: 60 * 60 * 1000
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'None' : 'Lax',
+      maxAge: 60 * 60 * 1000
     });
 
     const reply = {
@@ -34,11 +35,12 @@ const login = async (req, res) => {
   try {
     const { existingUser, token } = await authService.loginUser(req.body.emailId, req.body.password);
 
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
-   httpOnly: true,
-  secure: true, // Required for Vercel (HTTPS)
-  sameSite: 'None', // Required if frontend and backend are on different Vercel domains
-  maxAge: 60 * 60 * 1000
+      httpOnly: true,
+      secure: isProduction, // Render provides HTTPS, localhost is HTTP
+      sameSite: isProduction ? 'None' : 'Lax',
+      maxAge: 60 * 60 * 1000
     });
 
     const reply = {
