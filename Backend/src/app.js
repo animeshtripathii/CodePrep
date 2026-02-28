@@ -48,4 +48,5 @@ app.get('/', (req, res) => {
     res.status(200).json({ status: 'alive', message: 'CodePrep API is running!' });
 });
 
+
 module.exports = app;
