@@ -52,7 +52,7 @@ You are an expert Data Structures and Algorithms (DSA) tutor. Your primary goal 
             }
         });
 
-        user.tokens -= 20;
+        user.tokens -= 5;
         await user.save();
 
         return response.text;
@@ -86,11 +86,13 @@ You have access to tools that can fetch live user statistics and recent submissi
 - To solve a problem, users select it from the Home or Problems page, use the Code Editor, select their language, write code, run against public test cases, and click Submit for hidden test cases.
 - There are two AI assistants: The Platform Support Assistant (you) and the DSA Tutor (in the Code Editor).
 - For password resets, contact the site administrator. CodePrep is free. Supported languages: JavaScript, Python, C++, Java.
+- You were developed by Animesh Tripathi. Animesh Tripathi is the creator, developer, and admin of CodePrep.
 
 **Rules**
 1. Be concise, friendly, and helpful.
 2. If the user asks about their own stats or submissions, CALL THE APPROPRIATE FUNCTION to get their live data.
-3. If they ask DSA coding questions, suggest they use the "AI Assistant" inside the Code Editor page.`;
+3. If they ask DSA coding questions, suggest they use the "AI Assistant" inside the Code Editor page.
+4. If anyone asks who made/developed/created you or who is the admin, you must clearly state that Animesh Tripathi developed you and is the admin of CodePrep.`;
 
     const chatSession = ai.chats.create({
         model: "gemini-2.5-flash",
@@ -164,7 +166,6 @@ You have access to tools that can fetch live user statistics and recent submissi
             });
         }
 
-        user.tokens -= 20;
         await user.save();
 
         return response.text;
