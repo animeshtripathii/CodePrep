@@ -1,4 +1,4 @@
-
+require('dotenv').config();
 const problemRouter = require('./routes/problemRoutes');
 const express = require('express');
 const cors = require('cors');
@@ -13,14 +13,21 @@ const paymentRouter = require('./routes/paymentRouter');
 const planRouter = require('./routes/planRoutes');
 
 const app = express();
-app.use(express.json());
-// app.js
+
+const allowedOrigins = [
+    process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, '') : null,
+    'http://localhost:5173',
+    'https://code-prep-beryl.vercel.app'
+].filter(Boolean);
+
 app.use(cors({
-    origin: [
-        process.env.FRONTEND_URL,
-        'https://code-prep-beryl.vercel.app', // Deployed frontend
-        'http://localhost:5173'               // Local development
-    ],
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS: ' + origin));
+        }
+    },
     credentials: true, // Required for cookies and auth
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
@@ -32,9 +39,8 @@ app.use(cors({
     ]
 }));
 
-// Explicitly handle OPTIONS preflight for all routes
-app.options('*', cors());
 app.use(express.json());
+console.log(process.env.FRONTEND_URL);
 app.use(cookieparser());
 app.use('/user', authRouter);
 app.use('/problem', problemRouter);
