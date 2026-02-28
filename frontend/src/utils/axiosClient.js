@@ -1,6 +1,4 @@
-// frontend/src/utils/axiosClient.js
-
-const axios = require('axios');
+import axios from "axios";
 
 const axiosClient = axios.create({
     // Ensure this exactly matches your Render URL
@@ -11,4 +9,4 @@ const axiosClient = axios.create({
     },
 });
 
-module.exports = axiosClient;
+export default axiosClient;

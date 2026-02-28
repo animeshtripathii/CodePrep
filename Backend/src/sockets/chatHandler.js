@@ -11,19 +11,27 @@ let io;
 
 const initSocketServer = (httpServer) => {
     // src/sockets/chatHandler.js example
-io = require('socket.io')(httpServer, {
-  cors: {
-    origin: process.env.FRONTEND_URL,
-    credentials: true
-  }
-});
+    io = require('socket.io')(httpServer, {
+        cors: {
+            origin: process.env.FRONTEND_URL,
+            credentials: true
+        }
+    });
 
     console.log("Socket.io initialized for Discussions");
 
     // Middleware for Auth
     io.use(async (socket, next) => {
         try {
-            const token = socket.handshake.auth.token;
+            let token = socket.handshake.auth.token;
+
+            // Fallback: Check cookies if token is not in auth object (common for httpOnly cookies)
+            if (!token && socket.handshake.headers.cookie) {
+                const cookieString = socket.handshake.headers.cookie;
+                const match = cookieString.match(/(?:^|;\s*)token=([^;]*)/);
+                if (match) token = decodeURIComponent(match[1]);
+            }
+
             if (!token) return next(new Error("Authentication error: No token"));
 
             const decoded = jwt.verify(token, process.env.JWT_Secret_Key);
@@ -33,6 +41,7 @@ io = require('socket.io')(httpServer, {
             socket.user = user;
             next();
         } catch (err) {
+            console.error("Socket Auth Error:", err);
             next(new Error("Authentication error: Invalid Token"));
         }
     });

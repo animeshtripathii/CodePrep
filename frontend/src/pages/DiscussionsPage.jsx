@@ -46,12 +46,6 @@ const DiscussionsPage = () => {
         fetchProblems();
     }, []);
 
-    // Helper to read JWT from browser cookie
-    const getTokenFromCookie = () => {
-        const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
-        return match ? decodeURIComponent(match[1]) : null;
-    };
-
     // 2. Setup Socket when activeProblem changes
     useEffect(() => {
         if (!activeProblem || !user) return;
@@ -62,15 +56,8 @@ const DiscussionsPage = () => {
         setRoomId(null);
         setHasMore(false);
 
-        const jwtToken = getTokenFromCookie();
-        if (!jwtToken) {
-            setAccessDeniedMessage("No auth token found. Please log in again.");
-            return;
-        }
-
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+        const backendUrl = import.meta.env.VITE_API_URL || "https://codeprep-1kzd.onrender.com";
         const newSocket = io(backendUrl, {
-            auth: { token: jwtToken },
             withCredentials: true,
             transports: ['websocket']
         });
