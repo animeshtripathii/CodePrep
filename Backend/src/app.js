@@ -17,7 +17,8 @@ app.use(express.json());
 // app.js
 app.use(cors({
     origin: [
-        process.env.FRONTEND_URL, // Deployed frontend (e.g., https://codeprep.onrender.com)
+        process.env.FRONTEND_URL,
+          'https://code-prep-beryl.vercel.app',// Deployed frontend (e.g., https://codeprep.onrender.com)
         'http://localhost:5173'   // Local development
     ],
     credentials: true, // Required for cookies and auth
@@ -37,5 +38,6 @@ app.use("/discussion", require('./routes/discussionRoutes'));
 app.get('/', (req, res) => {
     res.status(200).json({ status: 'alive', message: 'CodePrep API is running!' });
 });
+
 
 module.exports = app;
