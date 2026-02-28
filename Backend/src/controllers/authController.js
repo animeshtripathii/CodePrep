@@ -95,11 +95,12 @@ const adminRegister = async (req, res) => {
     validate(req.body);
     const { newUser, token } = await authService.registerAdmin(req.body);
 
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 1000 // 1 hour
+      secure: isProduction,
+      sameSite: isProduction ? 'None' : 'Lax',
+      maxAge: 60 * 60 * 1000
     });
 
     res.status(201).json({
@@ -170,4 +171,14 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, getProfile, adminRegister, deleteProfile, getDashboardStats, checkAuth, forgotPassword, resetPassword };
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.result._id;
+    const updatedUser = await authService.updateUserProfile(userId, req.body);
+    res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports = { register, login, logout, getProfile, adminRegister, deleteProfile, getDashboardStats, checkAuth, forgotPassword, resetPassword, updateProfile };

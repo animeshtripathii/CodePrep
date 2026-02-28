@@ -1,6 +1,6 @@
 const express = require('express')
 const authRouter = express.Router();
-const { register, login, logout, getProfile, adminRegister, deleteProfile, getDashboardStats, checkAuth, forgotPassword, resetPassword } = require('../controllers/authController');
+const { register, login, logout, getProfile, adminRegister, deleteProfile, getDashboardStats, checkAuth, forgotPassword, resetPassword, updateProfile } = require('../controllers/authController');
 const userMiddleware = require('../middleware/userMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const loginSignupLimiter = require('../middleware/loginSignupLimiter');
@@ -12,6 +12,7 @@ authRouter.post('/login', loginSignupLimiter, login);
 
 //logout
 authRouter.post('/logout', userMiddleware, logout);
+authRouter.patch('/updateProfile', userMiddleware, updateProfile);
 authRouter.delete('/deleteProfile', userMiddleware, deleteProfile);
 authRouter.get('/dashboard', userMiddleware, getDashboardStats);
 

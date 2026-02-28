@@ -253,6 +253,23 @@ const resetPassword = async (token, newPassword) => {
     return { message: 'Password reset successful. You can now log in.' };
 };
 
+const updateUserProfile = async (userId, updateData) => {
+    const { firstName, lastName, password } = updateData;
+    const updates = {};
+    if (firstName) updates.firstName = firstName;
+    if (lastName) updates.lastName = lastName;
+    if (password) {
+        const saltRounds = 10;
+        updates.password = await bcrypt.hash(password, saltRounds);
+    }
+
+    const updatedUser = await user.findByIdAndUpdate(userId, updates, { new: true });
+    if (!updatedUser) {
+        throw new Error('User not found');
+    }
+    return updatedUser;
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -262,5 +279,6 @@ module.exports = {
     deleteUserProfile,
     getDashboardStatsService,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    updateUserProfile
 };

@@ -9,8 +9,18 @@ const transporter = nodemailer.createTransport({
 });
 
 
+transporter.verify(function (error, success) {
+    if (error) {
+        console.error("Nodemailer Transporter Error:", error);
+    } else {
+        console.log("Nodemailer: Server is ready to take our messages");
+    }
+});
+
+
 const sendResetPasswordEmail = async (to, resetUrl) => {
-    const htmlBody = `
+    try {
+        const htmlBody = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -68,12 +78,17 @@ const sendResetPasswordEmail = async (to, resetUrl) => {
     </body>
     </html>`;
 
-    await transporter.sendMail({
-        from: `"CodePrep" <${process.env.EMAIL_USER}>`,
-        to,
-        subject: 'Reset Your Password — CodePrep',
-        html: htmlBody
-    });
+        await transporter.sendMail({
+            from: `"CodePrep" <${process.env.EMAIL_USER}>`,
+            to,
+            subject: 'Reset Your Password — CodePrep',
+            html: htmlBody
+        });
+        console.log(`Reset email sent to ${to}`);
+    } catch (error) {
+        console.error("sendResetPasswordEmail Error:", error);
+        throw error;
+    }
 };
 
 /**
