@@ -1,17 +1,22 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // Use SSL/TLS
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
+    },
+    // Adding timeouts to prevent the request from hanging indefinitely
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 5000,    // 5 seconds
+    socketTimeout: 15000      // 15 seconds
 });
-
 
 transporter.verify(function (error, success) {
     if (error) {
-        console.error("Nodemailer Transporter Error:", error);
+        console.error("Nodemailer Transporter Verification Failed:", error);
     } else {
         console.log("Nodemailer: Server is ready to take our messages");
     }
