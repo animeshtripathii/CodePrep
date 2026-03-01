@@ -1,14 +1,21 @@
 const nodemailer = require('nodemailer');
 
+// backend/src/services/emailService.js
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // Use SSL
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    family: 4 // FORCES IPv4 to prevent the ENETUNREACH error
+    // Forced IPv4 to avoid the IPv6 routing issues seen in your logs
+    family: 4, 
+    // Increased timeouts to give the cloud network more time to respond
+    connectionTimeout: 10000, 
+    greetingTimeout: 10000,
+    socketTimeout: 10000
 });
-
 transporter.verify(function (error, success) {
     if (error) {
         console.error("Nodemailer Transporter Verification Failed:", error);
