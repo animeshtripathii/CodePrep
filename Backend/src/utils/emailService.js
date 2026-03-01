@@ -1,22 +1,12 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // Use SSL/TLS
+    service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    // Adding timeouts to prevent the request from hanging indefinitely
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 5000,    // 5 seconds
-    socketTimeout: 15000,
-    tls: {
-        rejectUnauthorized: false // Helps if there are certificate handshake issues
-    },
-    service: 'gmail', // Adding the service name helps Nodemailer optimize settings
-    family: 4
+    family: 4 // FORCES IPv4 to prevent the ENETUNREACH error
 });
 
 transporter.verify(function (error, success) {
