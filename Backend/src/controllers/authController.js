@@ -162,6 +162,7 @@ const checkAuth = (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     const { emailId } = req.body;
+    console.log("Forgot password attempt for:", emailId);
     if (!emailId) {
       return res.status(400).json({ message: 'Email is required.' });
     }

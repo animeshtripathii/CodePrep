@@ -1,33 +1,31 @@
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
-// backend/src/services/emailService.js
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // Use SSL
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    // Forced IPv4 to avoid the IPv6 routing issues seen in your logs
-    family: 4, 
-    // Increased timeouts to give the cloud network more time to respond
-    connectionTimeout: 10000, 
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-});
-transporter.verify(function (error, success) {
-    if (error) {
-        console.error("Nodemailer Transporter Verification Failed:", error);
-    } else {
-        console.log("Nodemailer: Server is ready to take our messages");
-    }
-});
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
-
+/**
+ * Send reset password email.
+ * @param {string} to - Recipient email
+ * @param {string} resetUrl - URL for password reset
+ */
 const sendResetPasswordEmail = async (to, resetUrl) => {
-    try {
-        const htmlBody = `
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.EMAIL_USER;
+
+    if (!apiKey) {
+        console.error("BREVO_API_KEY is missing.");
+        throw new Error("Email service not configured: Missing API Key.");
+    }
+
+    if (!senderEmail) {
+        console.error("EMAIL_USER is missing.");
+        throw new Error("Email service not configured: Missing verified sender email.");
+    }
+
+    const emailData = {
+        sender: { name: "CodePrep", email: senderEmail },
+        to: [{ email: to }],
+        subject: "Reset Your Password — CodePrep",
+        htmlContent: `
     <!DOCTYPE html>
     <html>
     <head>
@@ -39,14 +37,12 @@ const sendResetPasswordEmail = async (to, resetUrl) => {
             <tr>
                 <td align="center">
                     <table role="presentation" width="480" cellspacing="0" cellpadding="0" style="background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-                        <!-- Header -->
                         <tr>
                             <td style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding:32px 40px; text-align:center;">
                                 <h1 style="color:#ffffff; margin:0; font-size:24px; font-weight:700; letter-spacing:-0.5px;">CodePrep</h1>
                                 <p style="color:rgba(255,255,255,0.85); margin:8px 0 0; font-size:14px;">Password Reset Request</p>
                             </td>
                         </tr>
-                        <!-- Body -->
                         <tr>
                             <td style="padding:40px;">
                                 <p style="color:#334155; font-size:15px; line-height:1.6; margin:0 0 20px;">
@@ -72,7 +68,6 @@ const sendResetPasswordEmail = async (to, resetUrl) => {
                                 </p>
                             </td>
                         </tr>
-                        <!-- Footer -->
                         <tr>
                             <td style="background-color:#f8fafc; padding:20px 40px; text-align:center; border-top:1px solid #e2e8f0;">
                                 <p style="color:#94a3b8; font-size:11px; margin:0;">© ${new Date().getFullYear()} CodePrep. All rights reserved.</p>
@@ -83,18 +78,20 @@ const sendResetPasswordEmail = async (to, resetUrl) => {
             </tr>
         </table>
     </body>
-    </html>`;
+    </html>`
+    };
 
-        await transporter.sendMail({
-            from: `"CodePrep" <${process.env.EMAIL_USER}>`,
-            to,
-            subject: 'Reset Your Password — CodePrep',
-            html: htmlBody
+    try {
+        const response = await axios.post(BREVO_API_URL, emailData, {
+            headers: {
+                'api-key': apiKey,
+                'Content-Type': 'application/json'
+            }
         });
-        console.log(`Reset email sent to ${to}`);
+        console.log(`Reset email sent (via Brevo API) to ${to}. MessageId: ${response.data.messageId}`);
     } catch (error) {
-        console.error("sendResetPasswordEmail Error:", error);
-        throw error;
+        console.error("Brevo API Reset Email Error:", error.response?.data || error.message);
+        throw new Error("Failed to send reset email.");
     }
 };
 
@@ -105,8 +102,19 @@ const sendResetPasswordEmail = async (to, resetUrl) => {
  */
 const sendPlanActivationEmail = async (to, details) => {
     const { planName, tokensAdded, baseTokens, bonusTokens, totalBalance, amountPaid, userName } = details;
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.EMAIL_USER;
 
-    const htmlBody = `
+    if (!apiKey || !senderEmail) {
+        console.error("Brevo configuration missing.");
+        throw new Error("Email service not configured.");
+    }
+
+    const emailData = {
+        sender: { name: "CodePrep", email: senderEmail },
+        to: [{ email: to }],
+        subject: `✅ ${planName} Plan Activated — CodePrep`,
+        htmlContent: `
     <!DOCTYPE html>
     <html>
     <head>
@@ -118,21 +126,17 @@ const sendPlanActivationEmail = async (to, details) => {
             <tr>
                 <td align="center">
                     <table role="presentation" width="480" cellspacing="0" cellpadding="0" style="background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-                        <!-- Header -->
                         <tr>
                             <td style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); padding:32px 40px; text-align:center;">
                                 <h1 style="color:#ffffff; margin:0; font-size:24px; font-weight:700;">CodePrep</h1>
                                 <p style="color:rgba(255,255,255,0.85); margin:8px 0 0; font-size:14px;">Plan Activated Successfully 🎉</p>
                             </td>
                         </tr>
-                        <!-- Body -->
                         <tr>
                             <td style="padding:40px;">
                                 <p style="color:#334155; font-size:15px; line-height:1.6; margin:0 0 24px;">
                                     Hi <strong>${userName || 'there'}</strong>! Your <strong>${planName}</strong> plan has been activated. Here are the details:
                                 </p>
-
-                                <!-- Details Table -->
                                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; margin-bottom:24px;">
                                     <tr style="background-color:#f8fafc;">
                                         <td style="padding:12px 16px; font-size:13px; color:#64748b; border-bottom:1px solid #e2e8f0;">Plan</td>
@@ -160,16 +164,11 @@ const sendPlanActivationEmail = async (to, details) => {
                                         <td style="padding:12px 16px; font-size:13px; color:#0f172a; font-weight:600; text-align:right;">₹${amountPaid}</td>
                                     </tr>
                                 </table>
-
                                 <p style="color:#64748b; font-size:13px; line-height:1.6; margin:0 0 8px;">
                                     Your tokens are ready to use! Head to CodePrep and start solving problems.
                                 </p>
-                                <p style="color:#94a3b8; font-size:11px; margin:0;">
-                                    Activated on ${new Date().toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Kolkata' })}
-                                </p>
                             </td>
                         </tr>
-                        <!-- Footer -->
                         <tr>
                             <td style="background-color:#f8fafc; padding:20px 40px; text-align:center; border-top:1px solid #e2e8f0;">
                                 <p style="color:#94a3b8; font-size:11px; margin:0;">© ${new Date().getFullYear()} CodePrep. All rights reserved.</p>
@@ -180,14 +179,21 @@ const sendPlanActivationEmail = async (to, details) => {
             </tr>
         </table>
     </body>
-    </html>`;
+    </html>`
+    };
 
-    await transporter.sendMail({
-        from: `"CodePrep" <${process.env.EMAIL_USER}>`,
-        to,
-        subject: `✅ ${planName} Plan Activated — CodePrep`,
-        html: htmlBody
-    });
+    try {
+        const response = await axios.post(BREVO_API_URL, emailData, {
+            headers: {
+                'api-key': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
+        console.log(`Activation email sent (via Brevo API) to ${to}. MessageId: ${response.data.messageId}`);
+    } catch (error) {
+        console.error("Brevo API Activation Email Error:", error.response?.data || error.message);
+        throw new Error("Failed to send activation email.");
+    }
 };
 
 module.exports = { sendResetPasswordEmail, sendPlanActivationEmail };
