@@ -7,7 +7,7 @@ const redisClient = require("../config/redis");
 const { sendResetPasswordEmail } = require('../utils/emailService');
 
 const registerUser = async (userData) => {
-    const { firstName, emailId, password } = userData;
+    const { firstName, lastName, emailId, password } = userData;
     // user role is enforced in controller or here? Controller sets it. 
     // Let's keep strict logic as is. Controller set req.body.role='user'.
     // We will assume data passed here is ready to be used or we handle the role logic here if it was business logic.
@@ -19,6 +19,7 @@ const registerUser = async (userData) => {
 
     const newUser = await user.create({
         firstName,
+        lastName,
         emailId,
         password: hashedPassword,
         role: 'user' // Enforcing role as per original controller logic
@@ -81,7 +82,7 @@ const verifyUserProfile = async (token) => {
         throw new Error('Authentication required');
     }
     const decoded = jwt.verify(token, process.env.JWT_Secret_Key);
-    const existingUser = await user.findById(decoded._id).select('firstName emailId problemSolved tokens');
+    const existingUser = await user.findById(decoded._id).select('firstName lastName emailId problemSolved tokens');
 
     if (!existingUser) {
         throw new Error('User not found');
@@ -90,13 +91,14 @@ const verifyUserProfile = async (token) => {
 };
 
 const registerAdmin = async (userData) => {
-    const { firstName, emailId, password, role } = userData;
+    const { firstName, lastName, emailId, password, role } = userData;
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const newUser = await user.create({
         firstName,
+        lastName,
         emailId,
         password: hashedPassword,
         role: role
@@ -264,9 +266,9 @@ const resetPassword = async (token, newPassword) => {
 const updateUserProfile = async (userId, updateData) => {
     const { firstName, lastName, password } = updateData;
     const updates = {};
-    if (firstName) updates.firstName = firstName;
-    if (lastName) updates.lastName = lastName;
-    if (password) {
+    if (firstName) updates.firstName = firstName.trim();
+    if (lastName) updates.lastName = lastName.trim();
+    if (password && password.trim().length > 0) {
         const saltRounds = 10;
         updates.password = await bcrypt.hash(password, saltRounds);
     }

@@ -16,6 +16,7 @@ const register = async (req, res) => {
 
     const reply = {
       firstName: newUser.firstName,
+      lastName: newUser.lastName,
       emailId: newUser.emailId,
       _id: newUser._id,
       role: newUser.role,
@@ -45,6 +46,7 @@ const login = async (req, res) => {
 
     const reply = {
       firstName: existingUser.firstName,
+      lastName: existingUser.lastName,
       emailId: existingUser.emailId,
       _id: existingUser._id,
       problemSolved: existingUser.problemSolved,
@@ -95,6 +97,7 @@ const getProfile = async (req, res) => {
     res.status(200).json({
       user: {
         firstName: existingUser.firstName,
+        lastName: existingUser.lastName,
         emailId: existingUser.emailId,
         problemSolved: existingUser.problemSolved,
         tokens: existingUser.tokens
@@ -150,6 +153,7 @@ const getDashboardStats = async (req, res) => {
 const checkAuth = (req, res) => {
   const reply = {
     firstName: req.result.firstName,
+    lastName: req.result.lastName,
     emailId: req.result.emailId,
     _id: req.result._id,
     problemSolved: req.result.problemSolved,
@@ -190,6 +194,7 @@ const resetPassword = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     const userId = req.result._id;
+    validate(req.body, true);
     const updatedUser = await authService.updateUserProfile(userId, req.body);
     res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
   } catch (error) {
