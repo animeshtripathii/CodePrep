@@ -11,7 +11,12 @@ const transporter = nodemailer.createTransport({
     // Adding timeouts to prevent the request from hanging indefinitely
     connectionTimeout: 10000, // 10 seconds
     greetingTimeout: 5000,    // 5 seconds
-    socketTimeout: 15000      // 15 seconds
+    socketTimeout: 15000,
+    tls: {
+        rejectUnauthorized: false // Helps if there are certificate handshake issues
+    },
+    service: 'gmail', // Adding the service name helps Nodemailer optimize settings
+    family: 4
 });
 
 transporter.verify(function (error, success) {
