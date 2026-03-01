@@ -208,11 +208,20 @@ const getSolvedProblems = async (userId) => {
     };
 };
 
+const getRandomProblemId = async () => {
+    const randomProblem = await problemModel.aggregate([{ $sample: { size: 1 } }]);
+    if (randomProblem.length === 0) {
+        throw new Error("No problems found");
+    }
+    return randomProblem[0]._id;
+};
+
 module.exports = {
     createNewProblem,
     updateExistingProblem,
     deleteProblemById,
     getProblem,
     getAllProblems,
-    getSolvedProblems
+    getSolvedProblems,
+    getRandomProblemId
 };

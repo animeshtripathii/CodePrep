@@ -82,4 +82,16 @@ const solvedAllProblemUser = async (req, res) => {
     }
 }
 
-module.exports = { createProblem, updateProblem, deleteProblem, getProblemById, getAllProblem, solvedAllProblemUser };
+const getRandomProblem = async (req, res) => {
+    try {
+        const problemId = await problemService.getRandomProblemId();
+        res.status(200).json({ problemId });
+    } catch (error) {
+        if (error.message === "No problems found") {
+            return res.status(404).json({ message: error.message });
+        }
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+}
+
+module.exports = { createProblem, updateProblem, deleteProblem, getProblemById, getAllProblem, solvedAllProblemUser, getRandomProblem };

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import axiosClient from '../utils/axiosClient'
 import Navbar from '../components/Navbar'
@@ -7,6 +7,7 @@ import Footer from '../components/Footer'
 
 const Home = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const [problems, setProblems] = useState([]);
   const [solvedProblems, setSolvedProblems] = useState(null); // null = not fetched yet
@@ -137,6 +138,17 @@ const Home = () => {
   };
 
 
+  const handlePickRandom = async () => {
+    try {
+      const response = await axiosClient.get('/problem/getRandomProblem');
+      if (response.data.problemId) {
+        navigate(`/editor/${response.data.problemId}`);
+      }
+    } catch (error) {
+      // console.error("Error picking random problem:", error);
+    }
+  };
+
   return (
     <div className="bg-[#f8fcf9] text-[#0d1b12] min-h-screen flex flex-col font-sans antialiased selection:bg-[#13ec5b]/30">
 
@@ -223,7 +235,10 @@ const Home = () => {
               <p className="text-[#4c9a66] text-base font-normal">Sharpen your skills with over 2000+ coding challenges.</p>
             </div>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#e7f3eb] rounded-lg hover:bg-gray-50 transition-colors shadow-sm text-sm font-medium text-[#0d1b12]">
+              <button 
+                onClick={handlePickRandom}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#e7f3eb] rounded-lg hover:bg-gray-50 transition-colors shadow-sm text-sm font-medium text-[#0d1b12]"
+              >
                 <span className="material-symbols-outlined text-[20px] text-[#13ec5b]">shuffle</span>
                 Pick Random
               </button>
