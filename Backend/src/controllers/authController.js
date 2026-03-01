@@ -64,11 +64,26 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
   try {
     const { token } = req.cookies;
-    await authService.logoutUser(token);
-    res.cookie('token', null, { expires: new Date(Date.now()) });
+
+    // Attempt to blacklist the token in Redis, but don't let it block the response
+    if (token) {
+      authService.logoutUser(token).catch(err => console.error("Logout Service Error:", err.message));
+    }
+
+    // Determine environment-specific cookie options
+    const isProduction = process.env.NODE_ENV === 'production';
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'None' : 'Lax',
+      expires: new Date(0) // Immediately expire
+    };
+
+    res.clearCookie('token', cookieOptions);
     res.status(200).json({ message: 'Logout successful' });
   } catch (error) {
-    res.status(503).json({ message: 'Logout failed', error: error.message });
+    console.error("Logout Controller Error:", error);
+    res.status(500).json({ message: 'Logout failed', error: error.message });
   }
 };
 

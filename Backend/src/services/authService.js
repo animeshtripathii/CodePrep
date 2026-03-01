@@ -63,9 +63,17 @@ const loginUser = async (emailId, password) => {
 };
 
 const logoutUser = async (token) => {
-    const payload = jwt.decode(token);
-    await redisClient.set(`token:${token}`, 'blocked');
-    await redisClient.expireAt(`token:${token}`, payload.exp - Math.floor(Date.now() / 1000));
+    if (redisClient.isOpen) {
+        try {
+            const payload = jwt.decode(token);
+            if (payload && payload.exp) {
+                await redisClient.set(`token:${token}`, 'blocked');
+                await redisClient.expireAt(`token:${token}`, payload.exp - Math.floor(Date.now() / 1000));
+            }
+        } catch (error) {
+            console.error("Redis Error during logout:", error.message);
+        }
+    }
 };
 
 const verifyUserProfile = async (token) => {
