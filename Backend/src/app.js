@@ -14,14 +14,14 @@ const planRouter = require('./routes/planRoutes');
 const app = express();
 
 const allowedOrigins = [
-    'https://code-prep-beryl.vercel.app', 
+    'https://code-prep-beryl.vercel.app',
     'http://localhost:5173'
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin) return callback(null, true);
-        
+
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -29,12 +29,12 @@ app.use(cors({
         }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
-        'Content-Type', 
-        'Authorization', 
-        'Cache-Control', 
-        'Pragma', 
+        'Content-Type',
+        'Authorization',
+        'Cache-Control',
+        'Pragma',
         'Expires',
         'X-Requested-With'
     ],
