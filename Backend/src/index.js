@@ -11,7 +11,7 @@ async function startServer() {
   try {
     await connectDB();
     if (!redisClient.isOpen) await redisClient.connect();
-
+    console.log("Redis connected successfully");
     const httpServer = http.createServer(app);
     initSocketServer(httpServer); 
 
@@ -23,4 +23,5 @@ async function startServer() {
     process.exit(1);
   }
 }
+
 startServer();
