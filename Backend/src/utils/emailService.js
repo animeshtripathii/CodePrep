@@ -197,3 +197,4 @@ const sendPlanActivationEmail = async (to, details) => {
 };
 
 module.exports = { sendResetPasswordEmail, sendPlanActivationEmail };
+
