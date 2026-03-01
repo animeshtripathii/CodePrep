@@ -3,8 +3,8 @@ const nodemailer = require('nodemailer');
 // backend/src/services/emailService.js
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // Use SSL
+    port: 587,
+    secure: false, // Use SSL
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -12,9 +12,9 @@ const transporter = nodemailer.createTransport({
     // Forced IPv4 to avoid the IPv6 routing issues seen in your logs
     family: 4, 
     // Increased timeouts to give the cloud network more time to respond
-    connectionTimeout: 10000, 
-    greetingTimeout: 10000,
-    socketTimeout: 10000
+    connectionTimeout: 20000, 
+    greetingTimeout: 20000,
+    socketTimeout: 20000
 });
 transporter.verify(function (error, success) {
     if (error) {
@@ -191,3 +191,4 @@ const sendPlanActivationEmail = async (to, details) => {
 };
 
 module.exports = { sendResetPasswordEmail, sendPlanActivationEmail };
+
