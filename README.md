@@ -259,11 +259,12 @@ npm run dev
 | `GET` | `/problem/all` | ✅ User | Get paginated problems list. Supports `?page=1&limit=10&search=&difficulty=&tag=` query params. |
 | `GET` | `/problem/solved/all` | ✅ User | Get all problems solved by the authenticated user. |
 
-**Problem Creation Flow:**
-1. Admin submits problem with reference solutions in multiple languages
-2. Backend sends each reference solution through Judge0 with visible test cases
-3. If ANY test case fails → problem is rejected with an error
-4. If ALL pass → problem is saved to MongoDB
+**Problem Creation & MVC Flow:**
+Our backend strictly follows the **MVC (Model-View-Controller)** pattern.
+1. **Model (`models/problem.js`):** Defines the database schema for a problem, including `videoUrl` (for external YouTube-like links) and `secureUrl` (for natively uploaded DRM-secure video solutions).
+2. **Controller (`controllers/problemController.js`):** Receives the request, extracts data, and coordinates with Judge0 validation without embedding heavy business logic directly.
+3. **Service Layer (`services/problemService.js`):** Handles the heavy lifting—validating reference solutions against visible/hidden test cases via Judge0.
+4. If ALL test cases pass → The problem is saved to MongoDB. If ANY testcase fails → The creation request is rejected.
 
 ---
 
@@ -543,8 +544,8 @@ There are **two AI chatbots** powered by Google Gemini 2.5 Flash:
 | **Login** | `/login` | ❌ | Email/password login with Zod validation. "Forgot Password" link. |
 | **Signup** | `/signup` | ❌ | Registration with name, email, password + confirm. Zod schema validation. |
 | **Dashboard** | `/dashboard` | ✅ | User stats: solved count, rank, points, acceptance rate, streak, language pie chart, activity heatmap (365 days). |
-| **Code Editor** | `/problems/:id` | ✅ | Monaco editor with language selector, visible test case runner (Run), hidden test case submitter (Submit), AI Tutor panel. |
-| **Admin Panel** | `/admin` | ✅ Admin | CRUD for problems with pagination. Create problems with multiple languages, test cases, and reference solutions. |
+| **Code Editor** | `/problems/:id` | ✅ | Monaco editor with language selector, test cases. Features an **Editorial** tab that handles both external (`videoUrl`) links (e.g. YouTube redirects) and natively uploaded (`secureUrl`) videos with custom `<video>` embedded players securely. Also includes an AI Tutor panel. |
+| **Admin Panel** | `/admin` | ✅ Admin | CRUD for problems with pagination. Create problems with multiple languages, test cases, reference solutions, and upload both native and external video tutorials. |
 | **Plans** | `/plans` | ✅ | Token purchase page. Shows plan cards with Razorpay checkout integration. |
 | **Discussions** | `/discussions` | ✅ | Real-time chat rooms per problem via Socket.io. @CodeBot for AI responses. |
 | **Forgot Password** | `/forgot-password` | ❌ | Email input form. Sends reset link email. |
@@ -626,7 +627,8 @@ export default configureStore({
     hiddenTestCases: [{ input, output }],
     startCode: [{ language, initialCode }],
     referenceSolution: [{ language, completeCode }],
-    videoUrl: String,
+    videoUrl: String,           // External URL link for video explanations (e.g., YouTube)
+    secureUrl: String,          // Native video URL uploaded securely via Cloudinary
     problemCreator: ObjectId    // Reference to User
 }
 ```
