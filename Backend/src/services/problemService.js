@@ -146,7 +146,7 @@ const deleteProblemById = async (problemId) => {
 };
 
 const getProblem = async (problemId) => {
-    const DsaProblem = await problemModel.findById(problemId).select('title description tags difficulty visibleTestCases hiddenTestCases referenceSolution startCode videoUrl').lean();
+    const DsaProblem = await problemModel.findById(problemId).select('title description tags difficulty visibleTestCases hiddenTestCases referenceSolution startCode driverCode videoUrl').lean();
 
     if (!DsaProblem) {
         throw new Error("Problem not found");
