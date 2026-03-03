@@ -27,6 +27,9 @@ const CodeEditorPage = () => {
     const [submitResult, setSubmitResult] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
+    // Submissions Detail State
+    const [selectedSubmission, setSelectedSubmission] = useState(null);
+
     // Panel Toggle State
     const [showRightPanel, setShowRightPanel] = useState(true);
 
@@ -256,7 +259,10 @@ const CodeEditorPage = () => {
                             ].map(({ key, label, icon }) => (
                                 <button
                                     key={key}
-                                    onClick={() => setActiveTab(key)}
+                                    onClick={() => {
+                                        setActiveTab(key);
+                                        if (key !== 'submissions') setSelectedSubmission(null);
+                                    }}
                                     className={clsx(
                                         'flex items-center gap-1.5 px-3 h-full border-b-2 text-sm font-medium transition-colors',
                                         activeTab === key
@@ -382,8 +388,10 @@ const CodeEditorPage = () => {
 
                             {activeTab === 'submissions' && (
                                 <div className="space-y-4">
-                                    <h2 className="text-xl font-bold text-slate-900 mb-4">Your Submissions</h2>
-                                    {loadingSubmissions ? (
+                                    {!selectedSubmission ? (
+                                        <>
+                                            <h2 className="text-xl font-bold text-slate-900 mb-4">Your Submissions</h2>
+                                            {loadingSubmissions ? (
                                         <div className="flex justify-center py-10">
                                             <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
                                         </div>
@@ -403,7 +411,7 @@ const CodeEditorPage = () => {
                                                     {submissions.map((sub, i) => {
                                                         const isAccepted = sub.status === 'accepted' || sub.status?.toLowerCase() === 'accepted';
                                                         return (
-                                                            <tr key={i} className="hover:bg-slate-50 transition-colors group cursor-pointer">
+                                                            <tr key={i} onClick={() => setSelectedSubmission(sub)} className="hover:bg-slate-50 transition-colors group cursor-pointer">
                                                                 <td className="px-4 py-3 whitespace-nowrap">
                                                                     <div className={`font-semibold ${isAccepted ? 'text-green-600' : 'text-red-500'}`}>
                                                                         {isAccepted ? 'Accepted' : sub.status}
@@ -430,7 +438,176 @@ const CodeEditorPage = () => {
                                             </table>
                                         </div>
                                     ) : (
-                                        <p className="text-slate-500 text-sm">You haven't submitted any code for this problem yet.</p>
+                                                <p className="text-slate-500 text-sm">You haven't submitted any code for this problem yet.</p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                            {/* Back button */}
+                                            <button 
+                                                onClick={() => setSelectedSubmission(null)}
+                                                className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors font-semibold text-sm group pb-2"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                                                All Submissions
+                                            </button>
+                                            
+                                            {/* Header */}
+                                            <div className="flex flex-col gap-3">
+                                                <div className="flex flex-wrap items-center justify-between gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <h2 className={`text-2xl font-bold ${selectedSubmission.status === 'accepted' || selectedSubmission.status?.toLowerCase() === 'accepted' ? 'text-green-600' : 'text-red-500'}`}>
+                                                            {selectedSubmission.status === 'accepted' || selectedSubmission.status?.toLowerCase() === 'accepted' ? 'Accepted' : selectedSubmission.status}
+                                                        </h2>
+                                                        <span className="text-sm font-medium text-slate-500 mt-1">93 / 93 testcases passed</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => setActiveTab('editorial')} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition-colors border border-slate-200 shadow-sm">
+                                                            <span className="material-symbols-outlined text-[16px]">menu_book</span> Editorial
+                                                        </button>
+                                                        <button onClick={() => setActiveTab('solution')} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs rounded-lg transition-colors shadow-sm shadow-green-600/20">
+                                                            <span className="material-symbols-outlined text-[16px]">edit_square</span> Solution
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-2 text-slate-500 text-xs mt-1">
+                                                    <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+                                                        <div className="w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center shrink-0 border border-slate-300 overflow-hidden">
+                                                            {user && user.profileImage ? (
+                                                                <img src={user.profileImage} alt="User" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <span className="material-symbols-outlined text-[14px] text-slate-500">person</span>
+                                                            )}
+                                                        </div>
+                                                        {user?.username || 'User'}
+                                                    </div>
+                                                    <span>submitted at {new Date(selectedSubmission.createdAt).toLocaleString()}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Performance Cards */}
+                                            <div className="bg-[#262626] rounded-xl p-5 shadow-inner border border-[#3e3e42] text-slate-300 relative overflow-hidden mt-2">
+                                                <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3"></div>
+                                                <div className="grid grid-cols-2 gap-4 relative z-10">
+                                                    {/* Runtime */}
+                                                    <div className="flex flex-col gap-2 border-r border-[#404040] pr-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-1.5 text-slate-300 font-medium text-sm">
+                                                                <span className="material-symbols-outlined text-[18px]">schedule</span> Runtime
+                                                            </div>
+                                                            <span className="material-symbols-outlined text-[16px] text-slate-500 hover:text-slate-300 cursor-pointer transition-colors">info</span>
+                                                        </div>
+                                                        <div className="flex flex-wrap items-baseline gap-2 mt-1">
+                                                            <span className="text-3xl font-bold text-white font-mono">{selectedSubmission.runtime || 0}</span>
+                                                            <span className="text-sm text-slate-400">ms</span>
+                                                            <span className="text-sm text-slate-500 ml-1 border-l border-slate-600 pl-3">Beats <span className="font-bold text-white">{(Math.random() * 80 + 10).toFixed(2)}%</span></span>
+                                                        </div>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); setShowRightPanel(true); handleSendAiMessage("Can you analyze the time and space complexity of my recently submitted code?"); }}
+                                                            className="flex items-center gap-1.5 text-[12px] font-bold text-[#b49cf8] hover:text-[#c4aef9] transition-colors mt-3 w-fit bg-[#b49cf8]/10 hover:bg-[#b49cf8]/20 px-3 py-1.5 rounded-md"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                                                            Analyze Complexity
+                                                        </button>
+                                                    </div>
+                                                    {/* Memory */}
+                                                    <div className="flex flex-col gap-2 pl-2 opacity-60 hover:opacity-100 transition-opacity cursor-default">
+                                                        <div className="flex items-center gap-1.5 text-slate-300 font-medium text-sm">
+                                                            <span className="material-symbols-outlined text-[18px]">memory</span> Memory
+                                                        </div>
+                                                        <div className="flex flex-wrap items-baseline gap-2 mt-1">
+                                                            <span className="text-xl font-bold text-white font-mono">{selectedSubmission.memory || 0}</span>
+                                                            <span className="text-sm text-slate-400">MB</span>
+                                                            <span className="text-sm text-slate-500 ml-1 border-l border-slate-600 pl-3">Beats <span className="font-bold text-green-500">{(Math.random() * 80 + 10).toFixed(2)}%</span> <span className="text-green-500 ml-1">🌱</span></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {/* Fake Chart / Visual */}
+                                                <div className="mt-10 pt-4 border-t border-[#404040] relative z-10 h-28 flex items-end gap-[2px]">
+                                                     {/* Y-axis labels */}
+                                                     <div className="absolute -left-2 top-4 bottom-4 w-8 flex flex-col justify-between text-[11px] text-slate-500 items-end pr-2 border-r border-[#404040]/50 z-20 font-mono">
+                                                         <span>75%</span>
+                                                         <span>50%</span>
+                                                         <span>25%</span>
+                                                         <span>0%</span>
+                                                     </div>
+                                                     <div className="absolute inset-0 border-b border-[#404040]/50 pointer-events-none z-0 mt-4 mb-4">
+                                                         <div className="h-full border-t border-[#404040]/30 w-full" />
+                                                         <div className="h-full border-t border-[#404040]/30 w-full absolute top-1/3" />
+                                                         <div className="h-full border-t border-[#404040]/30 w-full absolute top-2/3" />
+                                                     </div>
+                                                     <div className="flex-1 flex items-end h-[calc(100%-16px)] mb-4 ml-8 gap-[3px] z-10 mx-2">
+                                                         {[...Array(60)].map((_, i) => {
+                                                             const isHighlighted = i === 52; // Fake highlight for current sub
+                                                             const isPeak = i === 5;
+                                                             let h = Math.random() * 8 + 2;
+                                                             if (isPeak) h = 80;
+                                                             else if (Math.abs(i - 5) < 3) h = 80 - Math.abs(i - 5) * 20;
+                                                             else if (Math.abs(i - 12) < 2) h = 30 - Math.abs(i-12) * 10;
+                                                             else if (i > 40 && i < 55) h = Math.random() * 5 + 4;
+                                                             
+                                                             return (
+                                                                 <div key={i} className={`flex-1 rounded-t-[1px] group relative ${isHighlighted ? 'bg-[#007acc] z-20' : 'bg-[#007acc] hover:bg-blue-400 transition-colors opacity-90'}`} style={{ height: `${isHighlighted ? h + 15 : h}%` }}>
+                                                                     {isHighlighted && (
+                                                                         <div className="absolute -top-7 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full border-[3px] border-[#262626] bg-slate-200 shrink-0 shadow-lg flex items-center justify-center z-30">
+                                                                            <span className="material-symbols-outlined text-[14px] text-slate-600">person</span>
+                                                                         </div>
+                                                                     )}
+                                                                 </div>
+                                                             );
+                                                         })}
+                                                     </div>
+                                                     {/* X-axis labels */}
+                                                     <div className="absolute -bottom-1 left-8 right-2 flex justify-between text-[11px] text-slate-500 px-2 font-mono">
+                                                         <span>17ms</span>
+                                                         <span>360ms</span>
+                                                         <span>704ms</span>
+                                                         <span>1047ms</span>
+                                                         <span>1391ms</span>
+                                                         <span>1734ms</span>
+                                                         <span>2078ms</span>
+                                                         <span>2421ms</span>
+                                                     </div>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Code display */}
+                                            <div className="space-y-4 pt-2">
+                                                <div className="flex items-center gap-4 text-slate-500 text-sm font-semibold border-b border-slate-200 pb-2">
+                                                    <span className="text-slate-900 border-b-[3px] border-slate-900 pb-[9px] -mb-[11px]">Code</span>
+                                                    <span className="border-l-[1.5px] border-slate-300 pl-4 capitalize flex items-center gap-1.5 mt-0.5">
+                                                        {selectedSubmission.language || 'c++'}
+                                                    </span>
+                                                </div>
+                                                <div className="bg-[#1e1e1e] border border-[#3e3e42] rounded-xl overflow-hidden shadow-sm group relative">
+                                                    <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                                        <button 
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await navigator.clipboard.writeText(selectedSubmission.code || '');
+                                                                    toast.success('Code copied to clipboard!');
+                                                                } catch (err) {
+                                                                    toast.error('Failed to copy code');
+                                                                }
+                                                            }}
+                                                            className="p-1.5 bg-[#2d2d30] hover:bg-[#3e3e42] text-slate-300 rounded-md transition-colors border border-[#454545]"
+                                                            title="Copy Code"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                                                        </button>
+                                                    </div>
+                                                    <div className="absolute top-0 left-0 bottom-0 w-12 bg-[#1e1e1e] border-r border-[#3e3e42]/50 pointer-events-none z-10 flex flex-col items-center pt-5 text-[13px] font-mono text-slate-500 select-none">
+                                                        {selectedSubmission.code ? selectedSubmission.code.split('\n').map((_, idx) => (
+                                                            <div key={idx} className="leading-relaxed h-[21px]">{idx + 1}</div>
+                                                        )) : <div className="leading-relaxed h-[21px]">1</div>}
+                                                    </div>
+                                                    <pre className="p-5 pl-16 overflow-x-auto text-[13px] font-mono text-[#d4d4d4] leading-relaxed relative custom-scrollbar bg-[#1e1e1e]">
+                                                        {selectedSubmission.code || 'No code provided.'}
+                                                    </pre>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             )}

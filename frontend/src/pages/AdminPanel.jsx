@@ -867,6 +867,33 @@ const AdminPanel = () => {
                                                     />
                                                     {errors.videoUrl && <span className="text-red-500 text-xs mt-1 block font-medium">{errors.videoUrl.message}</span>}
                                                     <p className="text-xs text-slate-500 mt-1.5">Enter an external video link to display in the editorial section.</p>
+                                                    
+                                                    {watch('videoUrl') && watch('videoUrl').includes('youtube.com/watch') && (
+                                                        <div className="mt-4 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                                                            <iframe
+                                                                width="100%"
+                                                                height="315"
+                                                                src={`https://www.youtube.com/embed/${watch('videoUrl').split('v=')[1]?.split('&')[0]}`}
+                                                                title="YouTube video player"
+                                                                frameBorder="0"
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                                allowFullScreen
+                                                            ></iframe>
+                                                        </div>
+                                                    )}
+                                                     {watch('videoUrl') && watch('videoUrl').includes('youtu.be/') && (
+                                                        <div className="mt-4 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                                                            <iframe
+                                                                width="100%"
+                                                                height="315"
+                                                                src={`https://www.youtube.com/embed/${watch('videoUrl').split('youtu.be/')[1]?.split('?')[0]}`}
+                                                                title="YouTube video player"
+                                                                frameBorder="0"
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                                allowFullScreen
+                                                            ></iframe>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div className="relative flex items-center py-2">
