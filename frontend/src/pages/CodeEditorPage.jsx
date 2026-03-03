@@ -318,46 +318,53 @@ const CodeEditorPage = () => {
                                 </>
                             )}
 
+
                             {activeTab === 'editorial' && (
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     <h2 className="text-xl font-bold text-slate-900 mb-4">Editorial</h2>
                                     
-                                    {problem.secureUrl || problem.videoUrl ? (
+                                    {problem.secureUrl && (
                                         <div className="mb-6">
                                             <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
                                                 <span className="material-symbols-outlined text-red-500">play_circle</span>
                                                 Video Solution
                                             </h3>
-                                            
-                                            {problem.secureUrl ? (
-                                                <div className="w-full bg-black rounded-xl overflow-hidden shadow-sm aspect-video">
-                                                    <video 
-                                                        src={problem.secureUrl}
-                                                        controls 
-                                                        className="w-full h-full object-contain"
-                                                        controlsList="nodownload"
-                                                        preload="metadata"
-                                                    >
-                                                        Your browser does not support the video tag.
-                                                    </video>
-                                                </div>
-                                            ) : (
-                                                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center space-y-3">
-                                                    <span className="material-symbols-outlined text-4xl text-blue-500 mb-2">link</span>
-                                                    <p className="text-slate-700 font-medium">An external video solution is available.</p>
-                                                    <a 
-                                                        href={problem.videoUrl} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
-                                                    >
-                                                        Watch Video Solution
-                                                        <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-                                                    </a>
-                                                </div>
-                                            )}
+                                            <div className="w-full bg-black rounded-xl overflow-hidden shadow-sm aspect-video">
+                                                <video 
+                                                    src={problem.secureUrl}
+                                                    controls 
+                                                    className="w-full h-full object-contain"
+                                                    controlsList="nodownload"
+                                                    preload="metadata"
+                                                >
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                            </div>
                                         </div>
-                                    ) : (
+                                    )}
+
+                                    {problem.videoUrl && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-blue-500">link</span>
+                                                External Video Solution
+                                            </h3>
+                                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center space-y-3">
+                                                <p className="text-slate-700 font-medium">An external video solution is available.</p>
+                                                <a 
+                                                    href={problem.videoUrl} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                                                >
+                                                    Watch Video Solution
+                                                    <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!problem.secureUrl && !problem.videoUrl && (
                                         <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 text-center">
                                             <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">videocam_off</span>
                                             <p className="text-slate-500 font-medium">No video editorial available for this problem.</p>
@@ -365,6 +372,7 @@ const CodeEditorPage = () => {
                                     )}
                                 </div>
                             )}
+```
 
                             {activeTab === 'solution' && (
                                 <div className="space-y-4">
