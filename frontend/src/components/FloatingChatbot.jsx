@@ -102,7 +102,7 @@ const FloatingChatbot = () => {
                                     : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm'
                                 }`}>
                                     {msg.role === 'assistant' ? (
-                                        <div className="prose prose-slate prose-sm max-w-none text-slate-800 prose-p:text-slate-800 prose-headings:text-slate-900 prose-strong:text-slate-900 prose-pre:bg-slate-50 prose-pre:border prose-pre:border-slate-200 prose-pre:p-3 prose-pre:rounded-lg">
+                                        <div className="prose prose-slate prose-sm max-w-none text-slate-800 prose-p:text-slate-800 prose-headings:text-slate-900 prose-strong:text-slate-900 prose-pre:bg-slate-100 prose-pre:text-slate-900 prose-pre:border prose-pre:border-slate-300 prose-pre:p-3 prose-pre:rounded-lg [&_:not(pre)>code]:!bg-slate-100 [&_:not(pre)>code]:!text-slate-900 [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:font-normal">
                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                 {msg.text}
                                             </ReactMarkdown>

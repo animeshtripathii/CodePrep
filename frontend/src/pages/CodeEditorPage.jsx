@@ -243,20 +243,20 @@ const CodeEditorPage = () => {
             <Navbar />
 
             {/* ═══════════════ MAIN WORKSPACE ═══════════════ */}
-            <main className="flex-1 flex overflow-hidden p-2 gap-2">
+            <main className="flex-1 flex overflow-hidden p-2 gap-2 bg-slate-200">
                 <Group orientation="horizontal">
 
                     {/* ── LEFT PANEL: Problem Description ── */}
-                    <Panel defaultSize={50} minSize={20} className="flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <Panel defaultSize={50} minSize={20} className="flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
 
                         {/* Tab bar */}
-                        <div className="flex items-center bg-white border-b border-slate-200 px-2 h-12 shrink-0 gap-2">
+                        <div className="flex flex-wrap items-center bg-slate-50 border-b border-slate-200 px-2 h-10 shrink-0 gap-1 overflow-x-auto custom-scrollbar-hide rounded-t-lg">
                             {[
-                                { key: 'description', label: 'Description', icon: 'description' },
-                                { key: 'editorial',   label: 'Editorial',   icon: 'menu_book'   },
-                                { key: 'solution',    label: 'Solution',    icon: 'verified'    },
-                                { key: 'submissions', label: 'Submissions', icon: 'history'     },
-                            ].map(({ key, label, icon }) => (
+                                { key: 'description', label: 'Description', icon: 'description', color: 'text-blue-500' },
+                                { key: 'editorial',   label: 'Editorial',   icon: 'menu_book',   color: 'text-yellow-500' },
+                                { key: 'solution',    label: 'Solutions',    icon: 'science',     color: 'text-cyan-500' },
+                                { key: 'submissions', label: 'Submissions', icon: 'update',      color: 'text-slate-400' },
+                            ].map(({ key, label, icon, color }) => (
                                 <button
                                     key={key}
                                     onClick={() => {
@@ -264,20 +264,21 @@ const CodeEditorPage = () => {
                                         if (key !== 'submissions') setSelectedSubmission(null);
                                     }}
                                     className={clsx(
-                                        'flex items-center gap-1.5 px-3 h-full border-b-2 text-sm font-medium transition-colors',
+                                        'flex items-center gap-1.5 px-3 min-w-max h-full text-xs font-semibold transition-colors',
                                         activeTab === key
-                                            ? 'border-green-600 text-slate-900'
-                                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                                            ? 'bg-white text-slate-900 border-t-2 border-t-transparent shadow-sm rounded-t-md relative -bottom-px z-10'
+                                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md my-1'
                                     )}
+                                    style={activeTab === key ? { borderTopColor: 'inherit', marginTop: '2px' } : {}}
                                 >
-                                    <span className={clsx('material-symbols-outlined text-[18px]', activeTab === key && 'text-green-600')}>{icon}</span>
+                                    <span className={clsx('material-symbols-outlined text-[16px]', activeTab === key ? color : 'text-slate-400')}>{icon}</span>
                                     {label}
                                 </button>
                             ))}
                         </div>
 
                         {/* Scrollable left content */}
-                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-white">
 
                             {/* Content based on active tab */}
                             {activeTab === 'description' && (
@@ -623,28 +624,29 @@ const CodeEditorPage = () => {
                     </Panel>
 
                     {/* Resize handle */}
-                    <Separator className="w-2 bg-transparent hover:bg-green-600/20 transition-colors cursor-col-resize flex items-center justify-center">
-                        <div className="h-8 w-1 bg-slate-300 rounded-full"></div>
+                    <Separator className="w-2 transition-colors cursor-col-resize flex flex-col items-center justify-center relative touch-none group">
+                        <div className="h-6 w-1 bg-slate-300 rounded-full group-hover:bg-slate-400 transition-colors"></div>
                     </Separator>
 
                     {/* ── MIDDLE PANEL: Editor + Terminal ── */}
-                    <Panel defaultSize={showRightPanel ? 33 : 50} minSize={30} className="relative flex flex-col bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <Group orientation="vertical" style={{ height: '100%' }}>
+                    <Panel defaultSize={showRightPanel ? 40 : 50} minSize={30} className="relative flex flex-col bg-transparent overflow-hidden">
+                        <Group orientation="vertical">
 
                             {/* Editor section */}
-                            <Panel defaultSize={70} minSize={25} className="flex flex-col">
-
-                                {/* Editor toolbar */}
-                                <div className="flex items-center justify-between bg-slate-50 border-b border-slate-200 px-4 h-12 shrink-0">
-                                    <div className="flex items-center gap-4">
-
-                                        {/* ── Language selector ── */}
-                                        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-md px-3 py-1.5 shadow-sm">
-                                            <span className="material-symbols-outlined text-green-600 text-[18px]">code</span>
+                            <Panel defaultSize={70} minSize={25} className="flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden relative">
+                                
+                                {/* Header: < > Code */}
+                                <div className="flex items-center justify-between bg-slate-50 border-b border-slate-200 px-3 h-10 shrink-0 overflow-x-auto custom-scrollbar-hide">
+                                    <div className="flex items-center gap-1.5 text-slate-700 font-semibold text-xs min-w-max">
+                                        <span className="material-symbols-outlined text-green-600 text-[16px]">code</span>
+                                        Code
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center bg-white border border-slate-200 rounded text-xs overflow-hidden shadow-sm">
                                             <select
                                                 value={language}
                                                 onChange={e => setLanguage(e.target.value)}
-                                                className="appearance-none bg-transparent border-none outline-none text-sm font-semibold text-slate-700 cursor-pointer pr-4 focus:ring-0"
+                                                className="appearance-none bg-transparent border-none outline-none font-semibold text-slate-700 cursor-pointer px-2 py-0.5 focus:ring-0"
                                             >
                                                 <option value="c">C</option>
                                                 <option value="c++">C++</option>
@@ -653,10 +655,9 @@ const CodeEditorPage = () => {
                                                 <option value="python">Python 3</option>
                                             </select>
                                         </div>
-                                    </div>
 
-                                    {/* Actions Right */}
-                                    <div className="flex items-center gap-3">
+                                        <div className="h-4 w-px bg-slate-300 mx-1"></div>
+
                                         <button
                                             onClick={() => {
                                                 if (problem?.startCode) {
@@ -664,40 +665,44 @@ const CodeEditorPage = () => {
                                                     if (s) setCode(s.initialCode);
                                                 }
                                             }}
-                                            className="flex items-center justify-center p-2 rounded-md hover:bg-slate-200 text-slate-500 hover:text-slate-700 transition"
+                                            className="flex items-center justify-center p-1 bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-700 rounded transition border border-slate-200 shadow-sm"
                                             title="Reset Code"
                                         >
-                                            <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                                            <span className="material-symbols-outlined text-[16px]">restart_alt</span>
                                         </button>
-                                        <button
-                                            onClick={() => setShowRightPanel(!showRightPanel)}
-                                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md transition border text-sm font-bold ${
-                                                showRightPanel 
-                                                ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200 shadow-sm' 
-                                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900 shadow-sm'
-                                            }`}
-                                            title="Toggle AI Panel"
-                                        >
-                                            <span className="material-symbols-outlined text-[18px]">smart_toy</span>
-                                            {showRightPanel ? 'Close AI' : 'Ask AI'}
-                                        </button>
-                                        <div className="h-6 w-px bg-slate-200 mx-1"></div>
+
                                         <button
                                             onClick={handleRun}
                                             disabled={output === 'Running...' || isSubmitting}
-                                            className={`px-4 py-1.5 rounded-md text-sm font-bold border transition-colors flex items-center gap-1.5 ${output === 'Running...' || isSubmitting ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 shadow-sm'}`}
+                                            className={`px-3 py-1 rounded shadow-sm text-xs font-bold border transition-colors flex items-center gap-1.5 ${output === 'Running...' || isSubmitting ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                                            title="Run Code"
                                         >
-                                            <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                                            <span className="material-symbols-outlined text-[14px]">play_arrow</span>
                                             Run
                                         </button>
+
                                         <button
                                             onClick={handleSubmit}
                                             disabled={isSubmitting || output === 'Running...'}
-                                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-colors flex items-center gap-1.5 ${isSubmitting || output === 'Running...' ? 'bg-green-300 text-white cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700 shadow-sm shadow-green-600/20'}`}
+                                            className={`px-3 py-1 rounded shadow-sm text-xs font-bold transition-colors flex items-center gap-1.5 border ${isSubmitting || output === 'Running...' ? 'bg-green-300 text-white border-green-300 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700 shadow-[0_2px_10px_rgba(22,163,74,0.3)] border-green-700'}`}
+                                            title="Submit Code"
                                         >
-                                            <span className="material-symbols-outlined text-[16px]">cloud_upload</span>
+                                            <span className="material-symbols-outlined text-[14px] text-green-100">cloud_upload</span>
                                             Submit
                                         </button>
+
+                                        {!showRightPanel && (
+                                            <>
+                                                <div className="h-4 w-px bg-slate-300 mx-1"></div>
+                                                <button
+                                                    onClick={() => setShowRightPanel(true)}
+                                                    className="flex items-center justify-center p-1 bg-white border border-slate-200 shadow-sm shadow-purple-500/10 hover:bg-slate-50 text-slate-700 rounded transition gap-1"
+                                                    title="Open AI Assist"
+                                                >
+                                                    <span className="material-symbols-outlined text-purple-600 text-[16px]">auto_awesome</span>
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
@@ -726,41 +731,42 @@ const CodeEditorPage = () => {
                             </Panel>
 
                             {/* Resize handle */}
-                            <Separator className="h-2 bg-slate-50 border-y border-slate-200 hover:bg-green-600/10 transition-colors cursor-row-resize flex items-center justify-center">
-                                <div className="w-8 h-1 bg-slate-300 rounded-full"></div>
+                            <Separator className="h-2 transition-colors cursor-row-resize flex items-center justify-center relative touch-none group">
+                                <div className="w-6 h-1 bg-slate-300 rounded-full group-hover:bg-slate-400 transition-colors"></div>
                             </Separator>
 
                             {/* ── Bottom: Console / Test Cases ── */}
-                            <Panel defaultSize={30} minSize={15} className="flex flex-col bg-white">
+                            <Panel defaultSize={30} minSize={15} className="flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
 
                                 {/* Bottom tab bar */}
-                                <div className="flex items-center px-4 pt-2 gap-2 border-b border-slate-200 bg-slate-50">
+                                <div className="flex items-center px-2 bg-slate-50 border-b border-slate-200 h-10 shrink-0 gap-1 overflow-x-auto custom-scrollbar-hide">
                                     <button
                                         onClick={() => setActiveBottomTab('testcases')}
                                         className={clsx(
-                                            'flex items-center gap-1.5 px-4 py-2 rounded-t-lg text-sm font-semibold relative top-[1px] transition-colors',
+                                            'flex items-center gap-1.5 px-3 min-w-max h-full text-xs font-semibold transition-colors',
                                             activeBottomTab === 'testcases'
-                                                ? 'bg-white text-slate-900 border-t border-l border-r border-slate-200'
-                                                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                                                ? 'bg-white text-slate-900 border-t-2 border-t-transparent shadow-sm rounded-t-md relative -bottom-px z-10'
+                                                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md my-1'
                                         )}
+                                        style={activeBottomTab === 'testcases' ? { borderTopColor: 'inherit', marginTop: '2px' } : {}}
                                     >
+                                        <span className={clsx('material-symbols-outlined text-[16px]', activeBottomTab === 'testcases' ? 'text-green-500' : 'text-slate-400')}>check_circle</span>
                                         Testcase
                                     </button>
+                                    <div className="w-px h-4 bg-slate-300 mx-1"></div>
                                     <button
                                         onClick={() => setActiveBottomTab('results')}
                                         className={clsx(
-                                            'flex items-center gap-1.5 px-4 py-2 rounded-t-lg text-sm font-semibold relative top-[1px] transition-colors',
+                                            'flex items-center gap-1.5 px-3 min-w-max h-full text-xs font-semibold transition-colors',
                                             activeBottomTab === 'results'
-                                                ? 'bg-white text-slate-900 border-t border-l border-r border-slate-200'
-                                                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                                                ? 'bg-white text-slate-900 border-t-2 border-t-transparent shadow-sm rounded-t-md relative -bottom-px z-10'
+                                                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md my-1'
                                         )}
+                                        style={activeBottomTab === 'results' ? { borderTopColor: 'inherit', marginTop: '2px' } : {}}
                                     >
-                                        Result
-                                        {submitResult && <span className={`w-2 h-2 rounded-full ${submitResult.status?.toLowerCase() === 'accepted' ? 'bg-green-500' : 'bg-red-500'}`} />}
-                                    </button>
-                                    <div className="flex-1" />
-                                    <button className="p-1 text-slate-400 hover:text-slate-700 transition">
-                                        <span className="material-symbols-outlined text-[20px]">keyboard_arrow_down</span>
+                                        <span className={clsx('material-symbols-outlined text-[16px]', activeBottomTab === 'results' ? 'text-green-500' : 'text-slate-400')}>terminal</span>
+                                        Test Result
+                                        {submitResult && <span className={`w-2 h-2 rounded-full ml-1 ${submitResult.status?.toLowerCase() === 'accepted' ? 'bg-green-500' : 'bg-red-500'}`} />}
                                     </button>
                                 </div>
 
@@ -909,19 +915,29 @@ const CodeEditorPage = () => {
                     </Panel>
 
                     {/* Resize handle */}
-                    <Separator 
-                        className={clsx(
-                            "w-2 transition-all cursor-col-resize flex items-center justify-center",
-                            showRightPanel ? "bg-transparent hover:bg-green-600/20" : "hidden"
+                    <Separator className={clsx(
+                            "w-2 transition-colors cursor-col-resize flex flex-col items-center justify-center relative touch-none group",
+                            showRightPanel ? "flex" : "hidden"
                         )}
                     >
-                        <div className="h-8 w-1 bg-slate-300 rounded-full"></div>
+                        <div className="h-6 w-1 bg-slate-300 rounded-full group-hover:bg-slate-400 transition-colors"></div>
                     </Separator>
 
-                    {/* ── RIGHT PANEL: AI Chat ── */}
                     {showRightPanel && (
-                        <Panel defaultSize={33} minSize={15} className="flex flex-col bg-slate-50 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                            
+                        <Panel defaultSize={25} minSize={15} className="flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                            {/* Header: ✨ CodeMaster AI */}
+                            <div className="flex items-center justify-between bg-slate-50 border-b border-slate-200 px-3 h-10 shrink-0">
+                                <div className="flex items-center gap-1.5 text-slate-800 font-semibold text-xs">
+                                    <span className="material-symbols-outlined text-purple-600 text-[16px]">auto_awesome</span>
+                                    CodeMaster AI
+                                </div>
+                                <div className="flex items-center gap-2">
+                                     <button onClick={() => setShowRightPanel(false)} className="text-slate-400 hover:text-slate-700 flex items-center justify-center bg-transparent hover:bg-slate-200 p-1 rounded-md transition-colors">
+                                         <span className="material-symbols-outlined text-[16px]">close</span>
+                                     </button>
+                                </div>
+                            </div>
+
                             <div className="flex-1 flex flex-col overflow-hidden bg-white">
                                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 flex flex-col gap-5 custom-scrollbar">
                                     {aiMessages.map((msg, idx) => (
@@ -936,7 +952,7 @@ const CodeEditorPage = () => {
                                                         <span className="text-[10px] text-slate-400">Just now</span>
                                                     </div>
                                                     <div className="bg-slate-50 border border-slate-200 rounded-2xl rounded-tl-sm p-4 text-sm text-slate-800 shadow-sm overflow-hidden break-words w-full">
-                                                        <div className="prose prose-slate prose-sm max-w-none text-slate-800 prose-p:text-slate-800 prose-headings:text-slate-900 prose-strong:text-slate-900 prose-pre:bg-white prose-pre:border prose-pre:border-slate-200 prose-pre:shadow-sm prose-pre:max-w-full prose-pre:overflow-x-auto">
+                                                        <div className="prose prose-slate prose-sm max-w-none text-slate-800 prose-p:text-slate-800 prose-headings:text-slate-900 prose-strong:text-slate-900 prose-pre:bg-slate-100 prose-pre:text-slate-900 prose-pre:border prose-pre:border-slate-300 prose-pre:shadow-sm prose-pre:max-w-full prose-pre:overflow-x-auto [&_:not(pre)>code]:!bg-slate-100 [&_:not(pre)>code]:!text-slate-900 [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:rounded-md [&_:not(pre)>code]:font-normal">
                                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                                 {msg.text}
                                                             </ReactMarkdown>
@@ -997,13 +1013,15 @@ const CodeEditorPage = () => {
                                             <span className="material-symbols-outlined text-[20px]">send</span>
                                         </button>
                                     </div>
-                                    <div className="flex justify-between items-center mt-2 px-1">
-                                        <span className="text-[10px] text-slate-400 flex items-center gap-1 cursor-pointer hover:text-slate-600 transition-colors">
-                                            <span className="material-symbols-outlined text-[12px]">code</span>
-                                            Insert Code Snippet
-                                        </span>
-                                        <span className={`text-[10px] font-bold ${user && user.tokens <= 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                            AI Tokens: {user ? user.tokens : 0}
+                                    <div className="flex justify-between items-center mt-2 px-1 pb-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-slate-400 flex items-center gap-1 cursor-pointer hover:text-slate-600 transition-colors">
+                                                <div className="w-5 h-3 bg-green-500 rounded-full flex items-center p-0.5 justify-end"><div className="w-2 h-2 bg-white rounded-full"></div></div>
+                                                Agent
+                                            </span>
+                                        </div>
+                                        <span className={`text-[10px] font-bold ${user && user.tokens <= 0 ? 'text-red-500' : 'text-purple-600'}`}>
+                                            Tokens: {user ? user.tokens : 0}
                                         </span>
                                     </div>
                                 </div>
