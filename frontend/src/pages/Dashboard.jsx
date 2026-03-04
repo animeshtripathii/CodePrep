@@ -27,7 +27,23 @@ const Dashboard = () => {
     const [error, setError]   = useState(null);
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editData, setEditData] = useState({ firstName: '', lastName: '', password: '' });
+    const [editData, setEditData] = useState({ firstName: '', lastName: '', password: '', profileImage: '' });
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Check file size (limit to 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error("Image must be less than 5MB");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setEditData(prev => ({ ...prev, profileImage: reader.result }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
@@ -157,11 +173,15 @@ const Dashboard = () => {
                         <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex flex-col items-center text-center">
                                 <div className="relative group cursor-pointer mb-4">
-                                    <div className="size-28 flex items-center justify-center rounded-full bg-green-500 text-white font-bold text-4xl border-4 border-slate-50 object-cover shadow-sm">
-                                        {initials}
+                                    <div className="size-28 flex items-center justify-center rounded-full bg-green-500 text-white font-bold text-4xl border-4 border-slate-50 object-cover shadow-sm overflow-hidden">
+                                        {user.profileImage ? (
+                                            <img src={user.profileImage} alt="Profile" className="size-full object-cover" />
+                                        ) : (
+                                            initials
+                                        )}
                                     </div>
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => {
-                                        setEditData({ firstName: user.firstName || '', lastName: user.lastName || '', password: '' });
+                                        setEditData({ firstName: user.firstName || '', lastName: user.lastName || '', password: '', profileImage: '' });
                                         setIsEditModalOpen(true);
                                     }}>
                                         <span className="material-symbols-outlined text-white">edit</span>
@@ -187,7 +207,7 @@ const Dashboard = () => {
                                     </a>
                                 </div>
                                 <button onClick={() => {
-                                    setEditData({ firstName: user.firstName || '', lastName: user.lastName || '', password: '' });
+                                    setEditData({ firstName: user.firstName || '', lastName: user.lastName || '', password: '', profileImage: '' });
                                     setIsEditModalOpen(true);
                                 }} className="w-full py-2.5 px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-green-500/20">
                                     <span className="material-symbols-outlined text-[20px]">edit</span>
@@ -444,6 +464,26 @@ const Dashboard = () => {
                             </button>
                         </div>
                         <form onSubmit={handleUpdateProfile} className="p-6 flex flex-col gap-4 text-left">
+                            <div className="flex flex-col gap-2 items-center mb-2">
+                                <div className="size-20 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden relative group cursor-pointer">
+                                    {editData.profileImage || user.profileImage ? (
+                                        <img src={editData.profileImage || user.profileImage} alt="Preview" className="size-full object-cover" />
+                                    ) : (
+                                        <span className="material-symbols-outlined text-slate-400 text-3xl">add_a_photo</span>
+                                    )}
+                                    <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        onChange={handleImageChange} 
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                        title="Upload Profile Image"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                        <span className="material-symbols-outlined text-white text-xl z-20">upload</span>
+                                    </div>
+                                </div>
+                                <span className="text-xs text-slate-500">Profile Photo</span>
+                            </div>
                             <div className="flex gap-4 flex-col sm:flex-row">
                                 <div className="flex-1 flex flex-col gap-1">
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">First Name</label>

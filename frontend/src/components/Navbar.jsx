@@ -106,7 +106,11 @@ const Navbar = () => {
 
                 {/* Avatar */}
                 <div className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-green-500 text-white font-bold text-sm border-2 border-slate-100">
-                    {initials}
+                    {user?.profileImage ? (
+                        <img src={user.profileImage} alt="Profile" className="size-full object-cover" />
+                    ) : (
+                        initials
+                    )}
                 </div>
 
                 {/* Logout */}

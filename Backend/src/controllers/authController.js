@@ -21,7 +21,8 @@ const register = async (req, res) => {
       _id: newUser._id,
       role: newUser.role,
       tokens: newUser.tokens,
-      token: token
+      token: token,
+      profileImage: newUser.profileImage
     }
     res.status(201).json({
       message: "User registered successfully",
@@ -51,7 +52,8 @@ const login = async (req, res) => {
       _id: existingUser._id,
       problemSolved: existingUser.problemSolved,
       role: existingUser.role,
-      tokens: existingUser.tokens
+      tokens: existingUser.tokens,
+      profileImage: existingUser.profileImage
     }
     res.status(200).json({
       message: 'Login successful',
@@ -100,7 +102,8 @@ const getProfile = async (req, res) => {
         lastName: existingUser.lastName,
         emailId: existingUser.emailId,
         problemSolved: existingUser.problemSolved,
-        tokens: existingUser.tokens
+        tokens: existingUser.tokens,
+        profileImage: existingUser.profileImage
       }
     });
   } catch (error) {
@@ -158,7 +161,8 @@ const checkAuth = (req, res) => {
     _id: req.result._id,
     problemSolved: req.result.problemSolved,
     role: req.result.role,
-    tokens: req.result.tokens
+    tokens: req.result.tokens,
+    profileImage: req.result.profileImage
   }
   res.json({ message: "You are authenticated", user: reply });
 };

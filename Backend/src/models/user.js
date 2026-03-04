@@ -48,6 +48,10 @@ const userSchema = new Schema({
         type: Number,
         default: 100,
     },
+    profileImage: {
+        type: String,
+        default: null
+    },
     resetPasswordToken: {
         type: String,
         default: null

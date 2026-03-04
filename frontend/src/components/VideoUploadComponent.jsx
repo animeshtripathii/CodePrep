@@ -67,10 +67,7 @@ const VideoUploadComponent = ({ problemId, userId, existingVideo }) => {
             const uploadData = uploadResponse.data;
 
             // 3. Save Metadata to Backend
-            // NOTE: The backend saveVideo currently expects the Cloudinary API to be called,
-            // but the Cloudinary upload already happened from frontend. We call `/save` regardless.
-            // As instructed, we will not change the backend to fix the missing cloudinaryPublicId variable in /save.
-            const metadataResponse = await axios.post(`/video/save`, {
+            const metadataResponse = await axiosClient.post(`/video/save`, {
                 problemId,
                 userId: userId || 'system',
                 cloudinaryPublicId: uploadData.public_id,

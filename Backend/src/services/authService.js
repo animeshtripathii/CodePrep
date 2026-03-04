@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const redisClient = require("../config/redis");
 const { sendResetPasswordEmail } = require('../utils/emailService');
+const cloudinary = require('../utils/cloudinary');
 
 const registerUser = async (userData) => {
     const { firstName, lastName, emailId, password } = userData;
@@ -82,7 +83,7 @@ const verifyUserProfile = async (token) => {
         throw new Error('Authentication required');
     }
     const decoded = jwt.verify(token, process.env.JWT_Secret_Key);
-    const existingUser = await user.findById(decoded._id).select('firstName lastName emailId problemSolved tokens');
+    const existingUser = await user.findById(decoded._id).select('firstName lastName emailId problemSolved tokens profileImage');
 
     if (!existingUser) {
         throw new Error('User not found');
@@ -198,7 +199,8 @@ const getDashboardStatsService = async (userId) => {
             rank: rank,
             points: totalPoints,
             solvedCount: solvedCount,
-            tokens: userData.tokens
+            tokens: userData.tokens,
+            profileImage: userData.profileImage
         },
         stats: {
             totalSubmissions,
@@ -264,13 +266,25 @@ const resetPassword = async (token, newPassword) => {
 };
 
 const updateUserProfile = async (userId, updateData) => {
-    const { firstName, lastName, password } = updateData;
+    const { firstName, lastName, password, profileImage } = updateData;
     const updates = {};
     if (firstName) updates.firstName = firstName.trim();
     if (lastName) updates.lastName = lastName.trim();
     if (password && password.trim().length > 0) {
         const saltRounds = 10;
         updates.password = await bcrypt.hash(password, saltRounds);
+    }
+    if (profileImage) {
+        // Upload base64 image to cloudinary
+        try {
+            const uploadResponse = await cloudinary.uploader.upload(profileImage, {
+                folder: 'codePrep-profiles'
+            });
+            updates.profileImage = uploadResponse.secure_url;
+        } catch (error) {
+            console.error("Cloudinary upload failed:", error.message);
+            throw new Error(`Cloudinary Error: ${error.message}. Please check your CLOUDINARY_API_SECRET in Backend/.env`);
+        }
     }
 
     const updatedUser = await user.findByIdAndUpdate(userId, updates, { new: true });
