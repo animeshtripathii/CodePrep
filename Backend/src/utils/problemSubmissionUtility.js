@@ -1,9 +1,12 @@
-// Helper to map languages to Judge0 IDs
 const axios = require('axios');
+
+// Update this to your new Azure IP
+const JUDGE0_URL = "http://20.207.192.115:2358";
+
 const getLanguageId = (lang) => {
     const languages = {
         "c": 50,
-        "c++": 53,
+        "c++": 54, // Note: 54 is usually GCC 9.2.0 in Judge0 v1.13
         "java": 62,
         "python": 71,
         "javascript": 63,
@@ -11,16 +14,15 @@ const getLanguageId = (lang) => {
     return languages[lang.toLowerCase()];
 };
 
-// 1. Submit Batch Function (Updated to WAIT for results)
+// 1. Submit Batch Function
 const submitBatch = async (submissions) => {
     const options = {
         method: 'POST',
-        // IMPORTANT: Added wait=true to get results immediately
-        url: 'https://judge029.p.rapidapi.com/submissions/batch?base64_encoded=false&wait=true',
+        // Note: Self-hosted Judge0 uses /submissions/batch directly
+        url: `${JUDGE0_URL}/submissions/batch?base64_encoded=false&wait=true`,
         headers: {
-            'x-rapidapi-key': process.env.JUDGE0_API, // Ensure this is set in .env
-            'x-rapidapi-host': 'judge029.p.rapidapi.com',
             'Content-Type': 'application/json'
+            // No RapidAPI keys needed here!
         },
         data: { submissions }
     };
@@ -29,58 +31,46 @@ const submitBatch = async (submissions) => {
         const response = await axios.request(options);
         return response.data;
     } catch (error) {
-        console.error("Judge0 API Error:", error.response ? error.response.data : error.message);
+        console.error("Azure Judge0 Error:", error.response ? error.response.data : error.message);
         return null;
     }
 };
 
+const waiting = (timer) => new Promise((resolve) => setTimeout(resolve, timer));
 
-const waiting = (timer) => {
-    return new Promise((resolve) => setTimeout(resolve, timer));
-};
-
+// 2. Get Results by Tokens
 const submitToken = async (resultTokens) => {
-    if (!resultTokens || resultTokens.length === 0) {
-        return [];
-    }
+    if (!resultTokens || resultTokens.length === 0) return [];
 
     const options = {
         method: 'GET',
-        url: 'https://judge029.p.rapidapi.com/submissions/batch',
+        url: `${JUDGE0_URL}/submissions/batch`,
         params: {
             tokens: resultTokens.join(','),
             base64_encoded: 'false',
             fields: '*'
-        },
-        headers: {
-            'x-rapidapi-key': process.env.JUDGE0_API,
-            'x-rapidapi-host': 'judge029.p.rapidapi.com'
         }
     };
 
-    async function fetchData() {
+    while (true) {
         try {
             const response = await axios.request(options);
-            return response.data;
+            const result = response.data;
+
+            if (!result || !result.submissions) {
+                await waiting(1000);
+                continue;
+            }
+
+            // status.id > 2 means it's finished (either Success, Runtime Error, or Wrong Answer)
+            const isResultObtained = result.submissions.every((s) => s.status_id > 2 || (s.status && s.status.id > 2));
+
+            if (isResultObtained) {
+                return result.submissions;
+            }
         } catch (error) {
-            return null;
+            console.error("Polling Error:", error.message);
         }
-    }
-
-    while (true) {
-        const result = await fetchData();
-
-        if (!result || !result.submissions) {
-            await waiting(1000);
-            continue;
-        }
-
-        const isResultObtained = result.submissions.every((submission) => submission.status.id > 2);
-
-        if (isResultObtained) {
-            return result.submissions;
-        }
-
         await waiting(1000);
     }
 }
