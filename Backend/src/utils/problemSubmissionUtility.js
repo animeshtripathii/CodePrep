@@ -1,7 +1,8 @@
 const axios = require('axios');
 
 // Update this to your new Azure IP
-
+// This checks the .env first, but uses your IP as a backup if it's missing
+const JUDGE0_URL = process.env.JUDGE0_URL;
 
 const getLanguageId = (lang) => {
     const languages = {
