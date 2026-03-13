@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // Update this to your new Azure IP
-const JUDGE0_URL = "http://20.207.192.115:2358";
+
 
 const getLanguageId = (lang) => {
     const languages = {
