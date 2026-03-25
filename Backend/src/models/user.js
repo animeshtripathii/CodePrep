@@ -11,7 +11,6 @@ const userSchema = new Schema({
     },
     lastName: {
         type: String,
-        minLength: 3,
         maxLength: 30,
         trim: true
     },
@@ -47,6 +46,10 @@ const userSchema = new Schema({
     tokens: {
         type: Number,
         default: 100,
+    },
+    aiMockInterviewCount: {
+        type: Number,
+        default: 0,
     },
     profileImage: {
         type: String,

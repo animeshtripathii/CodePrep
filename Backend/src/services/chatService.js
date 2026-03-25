@@ -5,17 +5,36 @@ const ai = new GoogleGenAI({
     apiKey: process.env.ChatBot_API
 });
 
+const isCodingRelatedMessage = (message = '', code = '', problemTitle = '', problemDescription = '') => {
+    const text = `${message} ${problemTitle} ${problemDescription}`.toLowerCase();
+    const hasCode = String(code || '').trim().length > 0;
+
+    const codingKeywords = [
+        'dsa', 'array', 'string', 'linked list', 'stack', 'queue', 'tree', 'graph', 'heap', 'hash',
+        'dp', 'dynamic programming', 'backtracking', 'greedy', 'binary search', 'two pointer',
+        'sliding window', 'complexity', 'time complexity', 'space complexity', 'leetcode',
+        'algorithm', 'bug', 'debug', 'test case', 'runtime', 'memory', 'code', 'function',
+        'class', 'compile', 'submission', 'optimize', 'hint', 'solution', 'editorial'
+    ];
+
+    return hasCode || codingKeywords.some((key) => text.includes(key));
+};
+
 
 /**
  * 1. Chatbot Alone (DSA Tutor)
  */
 const codingChat = async (message, code, language, problemTitle, problemDescription, user) => {
-    if (user.tokens <= 0) {
+    if (user.tokens < 5) {
         throw new Error("INSUFFICIENT_TOKENS");
     }
 
     if (!message || String(message).trim() === "") {
         return "I didn't quite catch that. Could you please type your question again?";
+    }
+
+    if (!isCodingRelatedMessage(message, code, problemTitle, problemDescription)) {
+        return "Prep AI only helps with coding and DSA questions. Please ask about problem-solving, code, test cases, complexity, debugging, or submissions.";
     }
 
     const engineeredPrompt = `The user is asking for help on a Data Structures and Algorithms problem.
@@ -66,33 +85,43 @@ You are an expert Data Structures and Algorithms (DSA) tutor. Your primary goal 
  * 2. Function Calling Model (Website Support Chatbot)
  */
 const websiteChat = async (message, user) => {
-    if (user.tokens <= 0) {
-        throw new Error("INSUFFICIENT_TOKENS");
-    }
-
     if (!message || String(message).trim() === "") {
         return "I didn't quite catch that. Could you please type your question again?";
     }
 
     const systemInstruction = `**Role & Identity**
-You are a helpful customer support and general assistant for the CodePrep platform. 
-Your primary goal is to answer questions about the platform, explain features, and guide users.
-You have access to tools that can fetch live user statistics and recent submissions. Always use these tools if the user asks about their personal progress, profile, or recent submissions.
+You are the website support assistant for CodePrep.
+Your goal is to answer platform/navigation/account questions using the current product behavior.
+You can fetch live user stats/submissions via tools when users ask about their own progress.
 
-**CodePrep Knowledge Base:**
-- CodePrep is a coding practice platform for Data Structures and Algorithms (DSA).
-- Users can track their progress on their Dashboard (Total Problems Solved, Activity Heatmap, Language Pie Chart).
-- To edit their profile, users go to the Dashboard and click 'Edit Profile'.
-- To solve a problem, users select it from the Home or Problems page, use the Code Editor, select their language, write code, run against public test cases, and click Submit for hidden test cases.
-- There are two AI assistants: The Platform Support Assistant (you) and the DSA Tutor (in the Code Editor).
-- For password resets, contact the site administrator. CodePrep is free. Supported languages: JavaScript, Python, C++, Java.
-- You were developed by Animesh Tripathi. Animesh Tripathi is the creator, developer, and admin of CodePrep.
+**Current CodePrep Product Knowledge (must stay consistent with app behavior):**
+- Dashboard route: /dashboard (requires login).
+- Explore problems route: /explore (requires login).
+- Code editor route: /editor/:id and /problems/:id.
+- Discussions route: /discussions.
+- Plans/upgrade route: /plans.
+- Settings/account route: /settings.
+- Mock interview setup route: /mock-interview-setup.
+- Timed session route: /timed-session.
 
-**Rules**
-1. Be concise, friendly, and helpful.
-2. If the user asks about their own stats or submissions, CALL THE APPROPRIATE FUNCTION to get their live data.
-3. If they ask DSA coding questions, suggest they use the "AI Assistant" inside the Code Editor page.
-4. If anyone asks who made/developed/created you or who is the admin, you must clearly state that Animesh Tripathi developed you and is the admin of CodePrep.`;
+**Mock Interview Rules:**
+- AI interview requires CV upload first.
+- Non-admin users have limited AI interview attempts.
+- Peer mode does not require CV upload.
+
+**AI Assistant Scope & Token Rules:**
+- This floating support bot is free to use.
+- Prep AI in code editor costs tokens.
+- In discussions: normal messages are free; Ask CodeBot costs tokens.
+
+**Support Guidance Rules:**
+1. Be concise, friendly, actionable.
+2. If user asks where to find a page/feature, give click-by-click UI steps first (for example: "Login -> Navbar -> Dashboard"). Mention login requirement when needed.
+3. Do NOT default to raw route strings. Only mention routes if the user explicitly asks for URL/path.
+4. If user asks personal progress or recent submissions, call the relevant function tool.
+5. If user asks DSA-solving help, direct them to the Code Editor Prep AI and interview tools.
+6. Do not invent unavailable features. If unsure, say what is known and suggest the closest supported path.
+7. If asked who built/administers CodePrep, answer: Animesh Tripathi is the creator and admin.`;
 
     const chatSession = ai.chats.create({
         model: "gemini-2.5-flash",
@@ -165,8 +194,6 @@ You have access to tools that can fetch live user statistics and recent submissi
                 }
             });
         }
-
-        await user.save();
 
         return response.text;
     } catch (error) {

@@ -4,13 +4,16 @@ const redisClient = require('../config/redis');
 
 const userMiddleware = async (req, res, next) => {
     try {
-        const { token } = req.cookies;
+        const cookieToken = req.cookies?.token;
+        const authHeader = req.headers?.authorization || req.headers?.Authorization;
+        const bearerToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+            ? authHeader.slice(7).trim()
+            : null;
+        const token = cookieToken || bearerToken;
         
         if (!token) {
             return res.status(401).json({ message: 'Login or Signup required' });
         }
-
-        // 1. Verify JWT immediately
         const payload = jwt.verify(token, process.env.JWT_Secret_Key);
         const { _id } = payload;
 

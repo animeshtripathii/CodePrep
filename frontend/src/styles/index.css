@@ -5,6 +5,23 @@
 @import "tailwindcss";
 @plugin "daisyui";
 @plugin "@tailwindcss/typography";
+@theme inline {
+  --animate-cell-ripple: cell-ripple var(--duration, 200ms) ease-out none 1
+  var(--delay, 0ms);
+
+  @keyframes cell-ripple {
+    0% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.8;
+    }
+    100% {
+      opacity: 0.4;
+    }
+  }
+}
+
 
 @theme {
   --font-sans: "Space Grotesk", sans-serif;
@@ -38,12 +55,18 @@
 }
 
 body {
-  @apply bg-[#101622] text-slate-100 font-sans antialiased;
+  @apply bg-[#050914] text-slate-200 font-sans antialiased overflow-x-hidden;
   min-height: 100vh;
+  /* Deep liquid background pattern */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(19, 91, 236, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+  background-attachment: fixed;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  @apply font-bold tracking-tight;
+  @apply font-bold tracking-tight text-white;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -63,25 +86,26 @@ h1, h2, h3, h4, h5, h6 {
 .text-accent   { @apply text-[#10b981]; }
 
 /* ──────────────────────────────────────────────────────────
-   Glass / Card Components
+   Glass / Card Components (The Liquid Aesthetic)
    ────────────────────────────────────────────────────────── */
 .glass-panel {
-  @apply bg-[#111722]/60 backdrop-blur-xl border border-white/10;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  @apply bg-[#0a0f1d]/50 backdrop-blur-2xl border border-white/5;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
 .glass-card {
-  @apply bg-[#111722]/60 backdrop-blur-xl border border-white/10 border-t-white/15 border-l-white/15 rounded-2xl relative overflow-hidden;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  @apply bg-[#0a0f1d]/40 backdrop-blur-3xl border border-white/5 border-t-white/10 hover:border-white/10 rounded-2xl relative overflow-hidden transition-all duration-500;
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 .glass-input {
-  @apply w-full bg-transparent border-0 border-b-2 border-white/10 text-white placeholder-slate-600 transition-all duration-300 font-light focus:outline-none focus:ring-0 focus:border-[#135bec];
-  backdrop-filter: blur(10px);
+  @apply w-full bg-[#0a0f1d]/30 border border-white/10 text-white placeholder-slate-500 transition-all duration-300 font-light focus:outline-none focus:ring-1 focus:ring-[#135bec]/50 focus:border-[#135bec]/50 rounded-lg px-4 py-2;
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
 }
 
 .glass-nav {
-  @apply bg-[#111722]/80 backdrop-blur-md border-b border-slate-800;
+  @apply bg-[#050914]/70 backdrop-blur-xl border-b border-white/5 shadow-2xl;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -128,4 +152,24 @@ h1, h2, h3, h4, h5, h6 {
    ────────────────────────────────────────────────────────── */
 .shadow-crystal {
   box-shadow: 0 8px 32px 0 rgba(19, 91, 236, 0.12);
+}
+@keyframes cell-ripple {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    background-color: rgba(99, 102, 241, 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+    background-color: rgba(99, 102, 241, 0.2);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+}
+
+.animate-cell-ripple {
+  animation: cell-ripple var(--duration, 200ms) ease-out var(--delay, 0ms) forwards;
 }

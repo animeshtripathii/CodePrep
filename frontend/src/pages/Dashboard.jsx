@@ -1,48 +1,128 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import axiosClient from '../utils/axiosClient';
-import { Link, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { logoutUser } from '../app/features/auth/authSlice';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
+import axiosClient from '../utils/axiosClient';
 
-/* ── helpers ──────────────────────────────────────── */
-const heatLevel = (count) => {
-    if (count === 0) return 'bg-slate-100';
-    if (count <= 2)  return 'bg-green-200';
-    if (count <= 5)  return 'bg-green-400';
-    if (count <= 8)  return 'bg-green-600';
-    return 'bg-green-800';
+const statusTone = (status = '') => {
+    const normalized = status.toLowerCase();
+    if (normalized.includes('accept') || normalized.includes('success')) {
+        return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
+    }
+    if (normalized.includes('pending')) {
+        return 'bg-amber-500/10 text-amber-300 border-amber-500/30';
+    }
+    return 'bg-red-500/10 text-red-300 border-red-500/30';
 };
 
-/* ─────────────────────────────────────────────────── */
+const heatmapClass = (count) => {
+    if (count <= 0) return 'bg-white/3 border-white/10';
+    if (count <= 2) return 'bg-indigo-500/20 border-indigo-500/30';
+    if (count <= 5) return 'bg-indigo-500/40 border-indigo-500/50';
+    if (count <= 8) return 'bg-indigo-500/60 border-indigo-500/70';
+    return 'bg-indigo-500/90 border-indigo-400/90 shadow-[0_0_6px_rgba(99,102,241,0.45)]';
+};
+
+const relativeTime = (input) => {
+    const date = new Date(input);
+    if (Number.isNaN(date.getTime())) return 'Unknown';
+    const diffMs = Date.now() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Just now';
+    if (diffMin < 60) return `${diffMin} mins ago`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+};
+
+const formatMemory = (memoryKb = 0) => {
+    const value = Number(memoryKb) || 0;
+    if (value <= 0) return 'N/A';
+    if (value >= 1024) return `${(value / 1024).toFixed(1)} MB`;
+    return `${value} KB`;
+};
+
+const formatRuntime = (runtimeMs = 0) => {
+    const value = Number(runtimeMs) || 0;
+    if (value <= 0) return 'N/A';
+    return `${value} ms`;
+};
+
+const polygonPoints = (ratio) => {
+    const outer = 45;
+    const center = 50;
+    return new Array(6).fill(0).map((_, i) => {
+        const angle = ((Math.PI * 2) / 6) * i - Math.PI / 2;
+        const r = outer * ratio;
+        const x = center + Math.cos(angle) * r;
+        const y = center + Math.sin(angle) * r;
+        return `${x},${y}`;
+    }).join(' ');
+};
+
+const radarPoints = (values) => {
+    const outer = 45;
+    const center = 50;
+    return values.map((value, i) => {
+        const angle = ((Math.PI * 2) / 6) * i - Math.PI / 2;
+        const ratio = Math.max(0, Math.min(100, value)) / 100;
+        const r = outer * ratio;
+        const x = center + Math.cos(angle) * r;
+        const y = center + Math.sin(angle) * r;
+        return { x, y };
+    });
+};
+
 const Dashboard = () => {
-    const { user: authUser } = useSelector(s => s.auth);
-    const dispatch = useDispatch();
     const navigate = useNavigate();
-    const [stats, setStats]   = useState(null);
+    const { user: authUser } = useSelector((state) => state.auth);
+
+    const [stats, setStats] = useState(null);
     const [solved, setSolved] = useState([]);
+    const [recent, setRecent] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError]   = useState(null);
+    const [error, setError] = useState('');
+    const [searchText, setSearchText] = useState('');
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editData, setEditData] = useState({ firstName: '', lastName: '', password: '', profileImage: '' });
 
+    useEffect(() => {
+        const loadDashboard = async () => {
+            try {
+                const [dashRes, solvedRes, recentRes] = await Promise.all([
+                    axiosClient.get('/user/dashboard'),
+                    axiosClient.get('/problem/problemSolvedByUser').catch(() => ({ data: { user: [] } })),
+                    axiosClient.get('/submission/recent?limit=8').catch(() => ({ data: { submissions: [] } }))
+                ]);
+
+                setStats(dashRes.data);
+                setSolved(solvedRes.data?.user || []);
+                setRecent(recentRes.data?.submissions || []);
+            } catch (loadError) {
+                setError('Failed to load dashboard data');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadDashboard();
+    }, []);
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            // Check file size (limit to 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error("Image must be less than 5MB");
-                return;
-            }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setEditData(prev => ({ ...prev, profileImage: reader.result }));
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image must be less than 5MB');
+            return;
         }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setEditData((prev) => ({ ...prev, profileImage: reader.result }));
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleUpdateProfile = async (e) => {
@@ -50,474 +130,523 @@ const Dashboard = () => {
         const toastId = toast.loading('Updating profile...');
         try {
             const payload = { ...editData };
-            if (!payload.password) delete payload.password; 
-            
+            if (!payload.password) delete payload.password;
             await axiosClient.patch('/user/updateProfile', payload);
-            toast.success('Profile updated successfully!', { id: toastId });
-            setTimeout(() => window.location.reload(), 1000);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to update profile', { id: toastId });
+
+            setStats((prev) => {
+                if (!prev?.user) return prev;
+                return {
+                    ...prev,
+                    user: {
+                        ...prev.user,
+                        firstName: payload.firstName ?? prev.user.firstName,
+                        lastName: payload.lastName ?? prev.user.lastName,
+                        profileImage: payload.profileImage || prev.user.profileImage,
+                    },
+                };
+            });
+
+            setIsEditModalOpen(false);
+            setEditData({ firstName: '', lastName: '', password: '', profileImage: '' });
+            toast.success('Profile updated successfully', { id: toastId });
+        } catch (updateError) {
+            toast.error(updateError.response?.data?.message || 'Failed to update profile', { id: toastId });
         }
     };
 
-    const handleDeleteProfile = async () => {
-        if (!window.confirm("Are you sure you want to delete your profile? This action cannot be undone and all your submissions will be lost.")) {
-            return;
+    const computed = useMemo(() => {
+        if (!stats) {
+            return {
+                easyCount: 0,
+                mediumCount: 0,
+                hardCount: 0,
+                solvedTotal: 0,
+                easyPct: 0,
+                mediumPct: 0,
+                hardPct: 0,
+                heatmapDays: [],
+                totalSubmissions: 0,
+                activeDays: 0,
+                maxStreak: 0,
+                monthlyBlocks: [],
+                periodLabel: 'Rolling 12M',
+                radarValues: [0, 0, 0, 0, 0, 0],
+                radarLabels: ['Consistency', 'Accuracy', 'Breadth', 'Volume', 'Depth', 'Growth']
+            };
         }
-        
-        const toastId = toast.loading('Deleting profile...');
-        try {
-            await axiosClient.delete('/user/deleteProfile');
-            toast.success('Profile deleted successfully! We will miss you.', { id: toastId });
-            dispatch(logoutUser());
-            setTimeout(() => navigate('/'), 1500);
-        } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to delete profile', { id: toastId });
-        }
-    };
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                const [dashRes, solvedRes] = await Promise.all([
-                    axiosClient.get('/user/dashboard'),
-                    axiosClient.get('/problem/problemSolvedByUser').catch(() => ({ data: { user: [] } })),
-                ]);
-                setStats(dashRes.data);
-                setSolved(solvedRes.data?.user || []);
-            } catch (err) {
-                console.error(err);
-                setError('Failed to load dashboard data');
-            } finally {
-                setLoading(false);
-            }
-        };
-        load();
-    }, []);
+        const easyCount = solved.filter((item) => item.difficulty === 'easy').length;
+        const mediumCount = solved.filter((item) => item.difficulty === 'medium').length;
+        const hardCount = solved.filter((item) => item.difficulty === 'hard').length;
+        const solvedTotal = Number(stats.user?.solvedCount || solved.length);
 
-    const { flatDays, totalSubmissions } = useMemo(() => {
-        if (!stats) return { flatDays: [], totalSubmissions: 0 };
+        const easyPct = solvedTotal > 0 ? Math.round((easyCount / solvedTotal) * 100) : 0;
+        const mediumPct = solvedTotal > 0 ? Math.round((mediumCount / solvedTotal) * 100) : 0;
+        const hardPct = solvedTotal > 0 ? Math.round((hardCount / solvedTotal) * 100) : 0;
+
         const hm = stats.stats?.heatmapData || {};
-        const grid = [];
+        const dayCount = 53 * 7;
         const today = new Date();
-        for (let i = 363; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(today.getDate() - i);
-            const key = d.toISOString().split('T')[0];
-            grid.push({ date: key, count: hm[key] || 0 });
+        const heatmapDays = [];
+
+        for (let i = dayCount - 1; i >= 0; i -= 1) {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
+            const key = date.toISOString().split('T')[0];
+            heatmapDays.push({ date: key, count: hm[key] || 0 });
         }
-        const total = Object.values(hm).reduce((a, b) => a + b, 0);
-        return { flatDays: grid, totalSubmissions: total };
-    }, [stats]);
 
-    const { easyCount, medCount, hardCount } = useMemo(() => {
+        const monthlyBlocks = [];
+        const monthStart = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+        const periodLabel = `${monthStart.toLocaleString('en-US', { month: 'short' })} - ${today.toLocaleString('en-US', { month: 'short' })} (rolling)`;
+        for (let idx = 0; idx < 12; idx += 1) {
+            const blockDate = new Date(monthStart.getFullYear(), monthStart.getMonth() + idx, 1);
+            const year = blockDate.getFullYear();
+            const month = blockDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            const dayValues = [];
+            for (let d = 1; d <= daysInMonth; d += 1) {
+                const dateKey = new Date(year, month, d).toISOString().split('T')[0];
+                dayValues.push({ date: dateKey, count: hm[dateKey] || 0 });
+            }
+
+            const cells = [];
+            const cellCount = 28;
+            for (let cellIndex = 0; cellIndex < cellCount; cellIndex += 1) {
+                const start = Math.floor((cellIndex * dayValues.length) / cellCount);
+                const end = Math.floor(((cellIndex + 1) * dayValues.length) / cellCount);
+                const bucket = dayValues.slice(start, Math.max(start + 1, end));
+                const count = bucket.reduce((sum, item) => sum + item.count, 0);
+                const sampleDate = bucket[0]?.date || `${year}-${String(month + 1).padStart(2, '0')}-01`;
+                cells.push({ date: sampleDate, count });
+            }
+
+            monthlyBlocks.push({
+                label: blockDate.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+                cells
+            });
+        }
+
+        const yearlySubmissions = heatmapDays.reduce((sum, day) => sum + day.count, 0);
+        const activeDays = heatmapDays.filter((day) => day.count > 0).length;
+
+        let maxStreak = 0;
+        let runningStreak = 0;
+        heatmapDays.forEach((day) => {
+            if (day.count > 0) {
+                runningStreak += 1;
+                maxStreak = Math.max(maxStreak, runningStreak);
+            } else {
+                runningStreak = 0;
+            }
+        });
+
+        const languageCount = Object.keys(stats.stats?.languageStats || {}).length;
+        const totalSubmissions = Number(stats.stats?.totalSubmissions || 0);
+        const acceptanceRate = Number(stats.stats?.acceptanceRate || 0);
+        const currentStreak = Number(stats.stats?.currentStreak || 0);
+        const rank = Number(stats.user?.rank || 0);
+
+        const radarValues = [
+            Math.min(100, currentStreak * 10),
+            Math.min(100, acceptanceRate),
+            Math.min(100, languageCount * 22),
+            Math.min(100, totalSubmissions * 2),
+            Math.min(100, solvedTotal > 0 ? Math.round(((mediumCount + hardCount) / solvedTotal) * 100) : 0),
+            Math.max(5, rank > 0 ? Math.max(0, Math.min(100, 110 - rank)) : 20)
+        ];
+
         return {
-            easyCount: solved.filter(p => p.difficulty === 'easy').length,
-            medCount:  solved.filter(p => p.difficulty === 'medium').length,
-            hardCount: solved.filter(p => p.difficulty === 'hard').length,
+            easyCount,
+            mediumCount,
+            hardCount,
+            solvedTotal,
+            easyPct,
+            mediumPct,
+            hardPct,
+            heatmapDays,
+            totalSubmissions: yearlySubmissions || totalSubmissions,
+            activeDays,
+            maxStreak,
+            monthlyBlocks,
+            periodLabel,
+            radarValues,
+            radarLabels: ['Consistency', 'Accuracy', 'Breadth', 'Volume', 'Depth', 'Growth']
         };
-    }, [solved]);
+    }, [solved, stats]);
 
-
-    if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <div className="flex flex-col items-center gap-4">
-                <div className="w-10 h-10 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
-                <p className="text-slate-500 text-sm font-mono uppercase tracking-widest">Loading…</p>
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
-        </div>
-    );
+        );
+    }
 
-    if (error || !stats) return (
-        <div className="min-h-screen flex items-center justify-center text-red-500 bg-slate-50">
-            {error || 'No data available'}
-        </div>
-    );
+    if (error || !stats) {
+        return (
+            <div className="min-h-screen flex items-center justify-center text-red-400">
+                {error || 'No dashboard data available'}
+            </div>
+        );
+    }
 
     const { user, stats: userStats } = stats;
-    const solvedTotal = user.solvedCount || 0;
     const initials = (user.firstName || authUser?.firstName || 'U').slice(0, 2).toUpperCase();
-
-    // Pie math
-    const pieTotal = Math.max(1, easyCount + medCount + hardCount);
-    const easyPct = (easyCount / pieTotal) * 100;
-    const medPct = (medCount / pieTotal) * 100;
-    const hardPct = (hardCount / pieTotal) * 100;
+    const displayName = `${user.firstName || authUser?.firstName || 'User'} ${user.lastName || authUser?.lastName || ''}`.trim();
+    const availableTokens = Number.isFinite(Number(user.tokens)) ? Number(user.tokens) : 0;
+    const radarPointData = radarPoints(computed.radarValues);
+    const radarPolygon = radarPointData.map((point) => `${point.x},${point.y}`).join(' ');
+    const circumference = 2 * Math.PI * 45;
+    const easyArc = (computed.easyCount / Math.max(1, computed.solvedTotal)) * circumference;
+    const mediumArc = (computed.mediumCount / Math.max(1, computed.solvedTotal)) * circumference;
+    const hardArc = (computed.hardCount / Math.max(1, computed.solvedTotal)) * circumference;
+    const filteredRecent = recent.filter((item) => item.problemTitle.toLowerCase().includes(searchText.toLowerCase()));
 
     return (
-        <div className="bg-slate-50 text-slate-900 font-display min-h-screen flex flex-col overflow-x-hidden">
+        <div className="min-h-screen relative overflow-x-hidden text-slate-100" style={{ fontFamily: 'Manrope, sans-serif' }}>
             <style>{`
-                ::-webkit-scrollbar { width: 8px; height: 8px; }
-                ::-webkit-scrollbar-track { background: #f1f5f9; }
-                ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-                ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+                .dashboard-glass {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    backdrop-filter: blur(22px);
+                    -webkit-backdrop-filter: blur(22px);
+                    border-radius: 16px;
+                }
+                .ambient-orb {
+                    position: fixed;
+                    border-radius: 50%;
+                    filter: blur(120px);
+                    opacity: 0.2;
+                    pointer-events: none;
+                    z-index: 0;
+                    animation: liquid 20s ease-in-out infinite alternate;
+                }
+                .orb-left {
+                    width: 760px;
+                    height: 760px;
+                    left: -220px;
+                    top: -220px;
+                    background: radial-gradient(circle, rgba(14,165,233,0.65) 0%, rgba(14,165,233,0) 70%);
+                }
+                .orb-right {
+                    width: 620px;
+                    height: 620px;
+                    right: -150px;
+                    bottom: -150px;
+                    background: radial-gradient(circle, rgba(99,102,241,0.55) 0%, rgba(99,102,241,0) 70%);
+                    animation-direction: alternate-reverse;
+                    animation-duration: 26s;
+                }
                 .heatmap-grid {
                     display: grid;
-                    grid-template-rows: repeat(7, 1fr);
-                    grid-template-columns: repeat(52, 12px);
+                    grid-template-columns: repeat(53, minmax(10px, 10px));
+                    grid-template-rows: repeat(7, minmax(10px, 10px));
+                    gap: 3px;
+                    width: max-content;
+                }
+                .heatmap-square {
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 2px;
+                    border-width: 1px;
+                }
+                .activity-heatmap-grid {
+                    display: grid;
+                    grid-template-columns: repeat(53, minmax(10px, 10px));
+                    grid-template-rows: repeat(7, 9px);
                     grid-auto-flow: column;
-                    gap: 4px;
+                    gap: 3px;
+                    width: max-content;
+                    min-height: 81px;
+                }
+                .activity-heatmap-grid-month {
+                    display: grid;
+                    grid-template-columns: repeat(4, minmax(11px, 11px));
+                    grid-template-rows: repeat(7, 10px);
+                    grid-auto-flow: column;
+                    gap: 3px;
+                    width: max-content;
+                }
+                .activity-heatmap-square {
+                    width: 11px;
+                    height: 10px;
+                    border-radius: 2px;
+                    border-width: 1px;
+                }
+                .activity-months-row {
+                    display: flex;
+                    gap: 14px;
+                    width: max(100%, max-content);
+                    justify-content: space-between;
+                    align-items: flex-start;
+                }
+                .activity-month-block {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 10px;
+                }
+                .activity-month-label {
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.18em;
+                    color: rgb(148 163 184);
+                    white-space: nowrap;
+                }
+                @keyframes liquid {
+                    0% { transform: translate(0, 0) scale(1); }
+                    50% { transform: translate(40px, -55px) scale(1.08); }
+                    100% { transform: translate(-45px, 45px) scale(0.92); }
                 }
             `}</style>
-            
-            <Navbar />
 
-            <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard</h1>
-                    <p className="text-slate-500">Welcome back, {user.firstName || authUser?.firstName}! Here's what's happening with your projects today.</p>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-1 flex flex-col gap-6">
-                        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex flex-col items-center text-center">
-                                <div className="relative group cursor-pointer mb-4">
-                                    <div className="size-28 flex items-center justify-center rounded-full bg-green-500 text-white font-bold text-4xl border-4 border-slate-50 object-cover shadow-sm overflow-hidden">
-                                        {user.profileImage ? (
-                                            <img src={user.profileImage} alt="Profile" className="size-full object-cover" />
-                                        ) : (
-                                            initials
-                                        )}
-                                    </div>
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => {
-                                        setEditData({ firstName: user.firstName || '', lastName: user.lastName || '', password: '', profileImage: '' });
-                                        setIsEditModalOpen(true);
-                                    }}>
-                                        <span className="material-symbols-outlined text-white">edit</span>
-                                    </div>
-                                </div>
-                                <h2 className="text-xl font-bold text-slate-900">{user.firstName} {user.lastName}</h2>
-                                <p className="text-sm text-slate-500 mb-2">{user.emailId}</p>
-                                <p className="text-sm font-bold text-green-600 mb-4 px-3 py-1 bg-green-50 rounded-full inline-block border border-green-200">
-                                    <span className="material-symbols-outlined text-[14px] align-middle mr-1">toll</span>
-                                    {user.tokens !== undefined ? user.tokens : authUser?.tokens || 0} AI Tokens
-                                </p>
-                                <p className="text-sm text-slate-600 mb-6 max-w-[240px]">
-                                    {user.role === 'admin' ? 'Platform Administrator' : 'Software Developer and Enthusiast'}
-                                </p>
-                                <div className="flex gap-3 w-full mb-6">
-                                    <a className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-slate-50 text-slate-700 text-sm font-medium hover:bg-slate-100 transition-colors border border-slate-200" href="#">
-                                        <span className="material-symbols-outlined text-[18px]">code</span>
-                                        GitHub
-                                    </a>
-                                    <a className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-slate-50 text-slate-700 text-sm font-medium hover:bg-slate-100 transition-colors border border-slate-200" href="#">
-                                        <span className="material-symbols-outlined text-[18px]">work</span>
-                                        LinkedIn
-                                    </a>
-                                </div>
-                                <button onClick={() => {
-                                    setEditData({ firstName: user.firstName || '', lastName: user.lastName || '', password: '', profileImage: '' });
-                                    setIsEditModalOpen(true);
-                                }} className="w-full py-2.5 px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-green-500/20">
-                                    <span className="material-symbols-outlined text-[20px]">edit</span>
-                                    Edit Profile
-                                </button>
-                                {user.role === 'admin' && (
-                                    <button onClick={() => navigate('/admin')} className="w-full mt-3 py-2.5 px-4 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-medium transition-colors flex items-center justify-center gap-2 shadow-lg shadow-slate-500/20">
-                                        <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
-                                        Admin Panel
-                                    </button>
-                                )}
-                            </div>
-                            
-                            <div className="mt-8 pt-6 border-t border-slate-200">
-                                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Skills & Languages</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {Object.entries(userStats?.languageStats || {}).length > 0 ? (
-                                        Object.keys(userStats.languageStats).map((lang, index) => (
-                                            <span key={index} className="px-2.5 py-1 rounded-md bg-green-50 text-green-700 text-xs font-medium border border-green-100 uppercase">{lang}</span>
-                                        ))
-                                    ) : (
-                                        <span className="text-sm text-slate-500">No skills yet</span>
-                                    )}
-                                </div>
-                            </div>
+            <div className="ambient-orb orb-left" />
+            <div className="ambient-orb orb-right" />
+
+            <div className="relative z-10 flex flex-col min-h-screen">
+                <main className="flex-1 max-w-7xl w-full mx-auto px-5 sm:px-6 lg:px-8 py-10 flex flex-col gap-8">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div className="flex flex-col gap-2">
+                        <h1 className="text-4xl font-bold tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>User Dashboard</h1>
+                        <p className="text-slate-400">Track your progress, consistency, and coding signal from real submissions.</p>
                         </div>
-                        
-                        <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                            <h3 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-green-600">groups</span>
-                                Community Stats
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-slate-500">Total Points</span>
-                                    <span className="text-sm font-medium text-slate-900">{user.points || 0}</span>
+                        <div className="flex items-center gap-3">
+                            <div className="hidden sm:block relative w-64">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
+                                <input
+                                    type="text"
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    className="w-full bg-white/3 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/60"
+                                    placeholder="Search submissions"
+                                />
+                            </div>
+                            <div className="relative group">
+                                <div className="w-10 h-10 rounded-lg border border-white/10 bg-indigo-500/15 text-indigo-200 flex items-center justify-center shadow-[0_0_14px_rgba(99,102,241,0.25)]">
+                                    <span className="material-symbols-outlined text-[20px]">code</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-slate-500">Total Submissions</span>
-                                    <span className="text-sm font-medium text-slate-900">{totalSubmissions}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-slate-500">Account Type</span>
-                                    <span className="text-sm font-medium text-slate-900 capitalize">{user.role || 'Member'}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-slate-500">Global Rank</span>
-                                    <span className="text-sm font-medium text-slate-900">Top #{user.rank || '—'}</span>
+                                <div className="pointer-events-none absolute right-0 top-12 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 rounded-lg border border-white/10 bg-[#0b1020]/95 px-3 py-2 text-xs text-slate-200 shadow-xl whitespace-nowrap">
+                                    <div className="font-semibold text-white">{displayName || initials}</div>
+                                    <div className="text-indigo-300 mt-0.5">Tokens: {availableTokens}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div className="lg:col-span-2 flex flex-col gap-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between h-32 hover:border-green-600/50 transition-colors cursor-default">
-                                <div className="flex justify-between items-start">
-                                    <span className="text-sm font-medium text-slate-500">Solved</span>
-                                    <span className="material-symbols-outlined text-green-600">check_circle</span>
-                                </div>
-                                <div>
-                                    <span className="text-2xl font-bold text-slate-900 block">{solvedTotal}</span>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between h-32 hover:border-orange-200 transition-colors cursor-default">
-                                <div className="flex justify-between items-start">
-                                    <span className="text-sm font-medium text-slate-500">Streak</span>
-                                    <span className="material-symbols-outlined text-orange-500">local_fire_department</span>
-                                </div>
-                                <div>
-                                    <span className="text-2xl font-bold text-slate-900 block">{userStats.currentStreak ?? 0}</span>
-                                    <span className="text-xs font-medium text-slate-500 mt-1">Days active</span>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between h-32 hover:border-yellow-200 transition-colors cursor-default">
-                                <div className="flex justify-between items-start">
-                                    <span className="text-sm font-medium text-slate-500">Rank</span>
-                                    <span className="material-symbols-outlined text-yellow-500">emoji_events</span>
-                                </div>
-                                <div>
-                                    <span className="text-2xl font-bold text-slate-900 block">#{user.rank || '—'}</span>
-                                    <span className="text-xs font-medium text-green-600 flex items-center gap-0.5 mt-1">
-                                        <span className="material-symbols-outlined text-[14px]">public</span>
-                                        World
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between h-32 hover:border-purple-200 transition-colors cursor-default">
-                                <div className="flex justify-between items-start">
-                                    <span className="text-sm font-medium text-slate-500">Badges</span>
-                                    <span className="material-symbols-outlined text-purple-500">military_tech</span>
-                                </div>
-                                <div className="flex items-center gap-[-8px]">
-                                    <span className="text-2xl font-bold text-slate-900 block mr-2">0</span>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                            <div className="p-6 pb-2">
-                                <h3 className="text-lg font-bold text-slate-900">Solved Problems</h3>
-                            </div>
-                            <div className="p-6 flex flex-col md:flex-row items-center gap-8">
-                                <div className="relative size-40 flex-shrink-0">
-                                    <svg className="size-full -rotate-90" viewBox="0 0 36 36">
-                                        <path className="text-slate-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3.8"></path>
-                                        <path className="text-emerald-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${easyPct}, 100`} strokeWidth="3.8"></path>
-                                        <path className="text-amber-400" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${medPct}, 100`} strokeDashoffset={`-${easyPct}`} strokeWidth="3.8"></path>
-                                        <path className="text-rose-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray={`${hardPct}, 100`} strokeDashoffset={`-${easyPct + medPct}`} strokeWidth="3.8"></path>
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        <section className="dashboard-glass p-6 flex flex-col gap-6">
+                            <h2 className="text-xl font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Solved</h2>
+                            <div className="flex items-center justify-center py-2">
+                                <div className="relative w-36 h-36">
+                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                        <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="8" />
+                                        <circle cx="50" cy="50" r="45" fill="none" stroke="#22c55e" strokeWidth="8" strokeDasharray={`${easyArc} ${circumference}`} strokeDashoffset="0" />
+                                        <circle cx="50" cy="50" r="45" fill="none" stroke="#eab308" strokeWidth="8" strokeDasharray={`${mediumArc} ${circumference}`} strokeDashoffset={`-${easyArc}`} />
+                                        <circle cx="50" cy="50" r="45" fill="none" stroke="#ef4444" strokeWidth="8" strokeDasharray={`${hardArc} ${circumference}`} strokeDashoffset={`-${easyArc + mediumArc}`} />
                                     </svg>
                                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                        <span className="text-3xl font-bold text-slate-900">{solvedTotal}</span>
-                                        <span className="text-xs text-slate-500 uppercase font-semibold">Solved</span>
-                                    </div>
-                                </div>
-                                <div className="flex-1 w-full space-y-4">
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-500 font-medium">Easy</span>
-                                            <span className="text-slate-900 font-bold">{easyCount}</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                            <div className="h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]" style={{ width: `${(easyCount / Math.max(1, solvedTotal)) * 100}%` }}></div>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-500 font-medium">Medium</span>
-                                            <span className="text-slate-900 font-bold">{medCount}</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                            <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(medCount / Math.max(1, solvedTotal)) * 100}%` }}></div>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-500 font-medium">Hard</span>
-                                            <span className="text-slate-900 font-bold">{hardCount}</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                            <div className="h-full bg-rose-500 rounded-full" style={{ width: `${(hardCount / Math.max(1, solvedTotal)) * 100}%` }}></div>
-                                        </div>
+                                        <span className="text-2xl font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>{computed.solvedTotal}</span>
+                                        <span className="text-[10px] uppercase tracking-widest text-slate-400">Total Solved</span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 overflow-x-auto custom-scrollbar">
-                            <div className="w-max min-w-full">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-bold text-slate-900">{totalSubmissions} submissions in the last year</h3>
-                                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                                        <span>Less</span>
-                                        <div className="flex gap-1">
-                                            <div className="size-3 rounded-sm bg-slate-100"></div>
-                                            <div className="size-3 rounded-sm bg-green-200"></div>
-                                            <div className="size-3 rounded-sm bg-green-400"></div>
-                                            <div className="size-3 rounded-sm bg-green-600"></div>
-                                            <div className="size-3 rounded-sm bg-green-800"></div>
-                                        </div>
-                                        <span>More</span>
-                                    </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <div className="flex justify-between text-xs mb-1"><span className="text-green-400">Easy</span><span>{computed.easyCount} ({computed.easyPct}%)</span></div>
+                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-green-500 rounded-full" style={{ width: `${computed.easyPct}%` }} /></div>
                                 </div>
-                                <div className="heatmap-grid pb-2">
-                                    {flatDays.map((day, i) => (
-                                        <div key={i} title={`${day.date}: ${day.count} submissions`} className={`size-3 rounded-sm flex-shrink-0 ${heatLevel(day.count)} hover:ring-2 hover:ring-offset-1 hover:ring-green-400 transition-all cursor-pointer`}></div>
-                                    ))}
+                                <div>
+                                    <div className="flex justify-between text-xs mb-1"><span className="text-yellow-400">Medium</span><span>{computed.mediumCount} ({computed.mediumPct}%)</span></div>
+                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-yellow-500 rounded-full" style={{ width: `${computed.mediumPct}%` }} /></div>
+                                </div>
+                                <div>
+                                    <div className="flex justify-between text-xs mb-1"><span className="text-red-400">Hard</span><span>{computed.hardCount} ({computed.hardPct}%)</span></div>
+                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-red-500 rounded-full" style={{ width: `${computed.hardPct}%` }} /></div>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                                    <h3 className="text-base font-bold text-slate-900">Recent Activity</h3>
-                                    <Link to="/problems" className="text-xs font-medium text-green-600 hover:text-green-700 hover:underline">View All</Link>
+                        <section className="dashboard-glass p-5 lg:col-span-3 flex flex-col gap-4 self-start">
+                            <div className="flex flex-col gap-3" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                                <div className="flex items-start justify-between gap-3 flex-wrap">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-2xl text-slate-100 font-semibold">{computed.totalSubmissions}</span>
+                                        <span className="text-2xl text-slate-400">submissions in the past one year</span>
+                                        <span className="material-symbols-outlined text-slate-500 text-sm">info</span>
+                                    </div>
+                                    <select className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/60">
+                                        <option>{computed.periodLabel}</option>
+                                    </select>
                                 </div>
-                                <div className="divide-y divide-slate-100 min-h-[220px]">
-                                    {solved.slice(0, 4).map((p, i) => (
-                                        <div key={p._id || i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate(`/problems/${p._id}`)}>
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-slate-900">{p.title}</span>
-                                                <span className="text-xs text-slate-500 capitalize">{p.difficulty}</span>
-                                            </div>
-                                            <span className={`px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-700 border border-green-200`}>Accepted</span>
-                                        </div>
-                                    ))}
-                                    {solved.length === 0 && <div className="p-6 text-center text-sm text-slate-500">No recent submissions found</div>}
+                                <div className="flex items-center gap-6 text-slate-300 flex-wrap">
+                                    <span className="text-base">Total active days: <span className="text-slate-100 font-semibold">{computed.activeDays}</span></span>
+                                    <span className="text-base">Max streak: <span className="text-slate-100 font-semibold">{computed.maxStreak}</span></span>
                                 </div>
                             </div>
-
-                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                                <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                                    <h3 className="text-base font-bold text-slate-900">Study Plan</h3>
-                                    <span className="text-xs font-medium text-green-600 bg-green-100 border border-green-200 px-2 py-1 rounded">Day 1</span>
-                                </div>
-                                <div className="p-4 flex-1 flex flex-col gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="size-10 rounded-lg bg-green-100 flex items-center justify-center text-green-600 border border-green-200">
-                                            <span className="material-symbols-outlined">data_object</span>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-bold text-slate-900">Data Structures 101</h4>
-                                            <p className="text-xs text-slate-500">Master arrays, linked lists, and trees.</p>
-                                        </div>
-                                    </div>
-                                    <div className="w-full bg-slate-100 rounded-full h-2">
-                                        <div className="bg-green-600 h-2 rounded-full shadow-[0_0_8px_rgba(22,163,74,0.4)]" style={{ width: '0%' }}></div>
-                                    </div>
-                                    <div className="mt-2 space-y-2">
-                                        <button className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-green-50 hover:border-green-200 transition-all group bg-white">
-                                            <div className="flex items-center gap-3">
-                                                <div className="size-5 rounded-full border-2 border-slate-300 group-hover:border-green-600 transition-colors flex items-center justify-center">
-                                                    <div className="size-2 rounded-full bg-green-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="flex flex-col gap-6">
+                                <div className="overflow-x-auto -mx-2 px-2 pb-1">
+                                    <div className="activity-months-row min-w-full" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                                        {computed.monthlyBlocks.map((block) => (
+                                            <div key={block.label} className="activity-month-block">
+                                                <div className="activity-heatmap-grid-month" title={`${block.label} activity`}>
+                                                    {block.cells.map((cell, idx) => (
+                                                        <div
+                                                            key={`${block.label}-${cell.date}-${idx}`}
+                                                            title={`${cell.date}: ${cell.count} submissions`}
+                                                            className={`activity-heatmap-square border ${heatmapClass(cell.count)}`}
+                                                        />
+                                                    ))}
                                                 </div>
-                                                <span className="text-sm text-slate-700 font-medium group-hover:text-green-600 transition-colors">Two Sum</span>
+                                                <span className="activity-month-label">{block.label}</span>
                                             </div>
-                                            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Easy</span>
-                                        </button>
-                                        <button className="w-full flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-green-50 hover:border-green-200 transition-all group bg-white">
-                                            <div className="flex items-center gap-3">
-                                                <div className="size-5 rounded-full border-2 border-slate-300 group-hover:border-green-600 transition-colors flex items-center justify-center">
-                                                    <div className="size-2 rounded-full bg-green-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                </div>
-                                                <span className="text-sm text-slate-700 font-medium group-hover:text-green-600 transition-colors">LRU Cache</span>
-                                            </div>
-                                            <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Medium</span>
-                                        </button>
+                                        ))}
                                     </div>
-                                    <Link to="/problems" className="mt-auto w-full text-center py-2 rounded-lg bg-slate-50 text-slate-700 text-sm font-medium hover:bg-green-50 hover:text-green-700 transition-colors border border-slate-200 hover:border-green-200">
-                                        Continue Learning
-                                    </Link>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <div className="mt-8 flex justify-end">
-                            <button onClick={handleDeleteProfile} className="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity bg-transparent px-3 py-1 rounded hover:bg-red-50">
-                                <span className="material-symbols-outlined text-[16px]">delete</span>
-                                Delete Account
-                            </button>
-                        </div>
+                        <section className="dashboard-glass p-6 lg:col-span-1 flex flex-col gap-4 items-center">
+                            <h2 className="text-xl font-bold self-start" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Skill Matrix</h2>
+                            <div className="relative w-full max-w-65 aspect-square my-2">
+                                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_14px_rgba(99,102,241,0.4)]">
+                                    <polygon points={polygonPoints(1)} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.6" />
+                                    <polygon points={polygonPoints(0.75)} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />
+                                    <polygon points={polygonPoints(0.5)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+                                    <polygon points={polygonPoints(0.25)} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5" />
+                                    {new Array(6).fill(0).map((_, i) => {
+                                        const angle = ((Math.PI * 2) / 6) * i - Math.PI / 2;
+                                        const x = 50 + Math.cos(angle) * 45;
+                                        const y = 50 + Math.sin(angle) * 45;
+                                        return <line key={`axis-${i}`} x1="50" y1="50" x2={x} y2={y} stroke="rgba(255,255,255,0.1)" strokeWidth="0.5" />;
+                                    })}
+                                    <polygon points={radarPolygon} fill="rgba(99,102,241,0.25)" stroke="#6366F1" strokeWidth="1.4" />
+                                    {radarPointData.map((point, i) => <circle key={`point-${i}`} cx={point.x} cy={point.y} r="1.8" fill="#0EA5E9" />)}
+                                </svg>
+
+                                <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-wide text-slate-400">Consistency</span>
+                                <span className="absolute top-[22%] -right-7 text-[10px] uppercase tracking-wide text-slate-400">Accuracy</span>
+                                <span className="absolute bottom-[24%] -right-4 text-[10px] uppercase tracking-wide text-slate-400">Breadth</span>
+                                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-wide text-slate-400">Volume</span>
+                                <span className="absolute bottom-[24%] -left-5 text-[10px] uppercase tracking-wide text-slate-400">Depth</span>
+                                <span className="absolute top-[22%] -left-5 text-[10px] uppercase tracking-wide text-slate-400">Growth</span>
+                            </div>
+                            <div className="w-full text-xs text-slate-400 space-y-1" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                                <div className="flex justify-between"><span>Acceptance</span><span>{userStats.acceptanceRate}%</span></div>
+                                <div className="flex justify-between"><span>Current Streak</span><span>{userStats.currentStreak} days</span></div>
+                                <div className="flex justify-between"><span>Languages Used</span><span>{Object.keys(userStats.languageStats || {}).length}</span></div>
+                            </div>
+                        </section>
+
+                        <section className="dashboard-glass p-6 lg:col-span-3 flex flex-col gap-4 lg:-mt-28">
+                            <div className="flex items-center justify-between gap-3 mb-1">
+                                <h2 className="text-xl font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Recent Submissions</h2>
+                                <button onClick={() => navigate('/')} className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors">View Problems</button>
+                            </div>
+                            <div className="w-full overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-160">
+                                    <thead>
+                                        <tr className="text-xs uppercase tracking-wider text-slate-400 border-b border-white/10" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                                            <th className="py-3 px-4 font-normal">Problem</th>
+                                            <th className="py-3 px-4 font-normal">Status</th>
+                                            <th className="py-3 px-4 font-normal">Runtime</th>
+                                            <th className="py-3 px-4 font-normal">Memory</th>
+                                            <th className="py-3 px-4 font-normal text-right">Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm">
+                                        {filteredRecent.map((item) => (
+                                            <tr key={item._id} className="border-b last:border-b-0 border-white/10 hover:bg-white/4 transition-colors">
+                                                <td className="py-4 px-4 font-medium text-slate-100">{item.problemTitle}</td>
+                                                <td className="py-4 px-4">
+                                                    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs border ${statusTone(item.status)}`} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                                        {item.status || 'Unknown'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-4 text-slate-300" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{formatRuntime(item.runtime)}</td>
+                                                <td className="py-4 px-4 text-slate-300" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{formatMemory(item.memory)}</td>
+                                                <td className="py-4 px-4 text-slate-400 text-right" style={{ fontFamily: 'JetBrains Mono, monospace' }}>{relativeTime(item.createdAt)}</td>
+                                            </tr>
+                                        ))}
+                                        {filteredRecent.length === 0 && (
+                                            <tr>
+                                                <td colSpan="5" className="py-8 text-center text-slate-500">No submissions found for this filter.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
                     </div>
-                </div>
-            </main>
+
+                    <div className="flex justify-between items-center gap-3 flex-wrap text-sm text-slate-400">
+                        <span>Signed in as {user.firstName} {user.lastName} ({user.emailId})</span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-200" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                            <span className="material-symbols-outlined text-[15px]">token</span>
+                            Tokens Left: {Number.isFinite(Number(user.tokens)) ? Number(user.tokens) : 0}
+                        </span>
+                    </div>
+                </main>
+            </div>
 
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-md rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col">
-                        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                            <h3 className="text-xl font-bold text-slate-900">Edit Profile</h3>
-                            <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                                <span className="material-symbols-outlined text-[24px]">close</span>
+                <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#06080f]/95 backdrop-blur-2xl overflow-hidden">
+                        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+                            <h3 className="text-lg font-bold" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>Edit Profile</h3>
+                            <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-white">
+                                <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
-                        <form onSubmit={handleUpdateProfile} className="p-6 flex flex-col gap-4 text-left">
-                            <div className="flex flex-col gap-2 items-center mb-2">
-                                <div className="size-20 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden relative group cursor-pointer">
-                                    {editData.profileImage || user.profileImage ? (
-                                        <img src={editData.profileImage || user.profileImage} alt="Preview" className="size-full object-cover" />
+                        <form onSubmit={handleUpdateProfile} className="p-5 flex flex-col gap-4">
+                            <div className="flex items-center justify-center">
+                                <div className="w-20 h-20 rounded-full border border-dashed border-white/25 overflow-hidden relative">
+                                    {(editData.profileImage || user.profileImage) ? (
+                                        <img src={editData.profileImage || user.profileImage} alt="Preview" className="w-full h-full object-cover" />
                                     ) : (
-                                        <span className="material-symbols-outlined text-slate-400 text-3xl">add_a_photo</span>
+                                        <div className="w-full h-full flex items-center justify-center text-slate-500">
+                                            <span className="material-symbols-outlined">add_a_photo</span>
+                                        </div>
                                     )}
-                                    <input 
-                                        type="file" 
-                                        accept="image/*" 
-                                        onChange={handleImageChange} 
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                        title="Upload Profile Image"
-                                    />
-                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                        <span className="material-symbols-outlined text-white text-xl z-20">upload</span>
-                                    </div>
-                                </div>
-                                <span className="text-xs text-slate-500">Profile Photo</span>
-                            </div>
-                            <div className="flex gap-4 flex-col sm:flex-row">
-                                <div className="flex-1 flex flex-col gap-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">First Name</label>
-                                    <input type="text" 
-                                        className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600 transition-colors"
-                                        value={editData.firstName} onChange={e => setEditData({...editData, firstName: e.target.value})} required />
-                                </div>
-                                <div className="flex-1 flex flex-col gap-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Last Name</label>
-                                    <input type="text" 
-                                        className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600 transition-colors"
-                                        value={editData.lastName} onChange={e => setEditData({...editData, lastName: e.target.value})} />
+                                    <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageChange} />
                                 </div>
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">New Password</label>
-                                <input type="password" placeholder="Leave blank to keep same"
-                                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600 transition-colors"
-                                    value={editData.password} onChange={e => setEditData({...editData, password: e.target.value})} />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input
+                                    value={editData.firstName}
+                                    onChange={(e) => setEditData((prev) => ({ ...prev, firstName: e.target.value }))}
+                                    className="bg-white/3 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    placeholder="First name"
+                                    required
+                                />
+                                <input
+                                    value={editData.lastName}
+                                    onChange={(e) => setEditData((prev) => ({ ...prev, lastName: e.target.value }))}
+                                    className="bg-white/3 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                    placeholder="Last name"
+                                />
                             </div>
-                            <div className="mt-4 flex justify-between items-center">
-                                <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-all">
+                            <input
+                                type="password"
+                                value={editData.password}
+                                onChange={(e) => setEditData((prev) => ({ ...prev, password: e.target.value }))}
+                                className="bg-white/3 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                placeholder="New password (optional)"
+                            />
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2 rounded-lg border border-white/10 text-slate-300 hover:text-white">
                                     Cancel
                                 </button>
-                                <button type="submit" className="px-5 py-2 rounded-lg text-sm font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20 transition-all">
-                                    Save Changes
+                                <button type="submit" className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white">
+                                    Save
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-            
-            <Footer />
         </div>
     );
 };

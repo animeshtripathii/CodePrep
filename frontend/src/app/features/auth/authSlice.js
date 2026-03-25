@@ -1,15 +1,46 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axiosClient from "../../../utils/axiosClient.js";
+import axiosClient, { API_BASE_URL, API_DEV_PORT } from "../../../utils/axiosClient.js";
+
+const AUTH_TOKEN_KEY = "codeprep_auth_token";
+
+const persistAuthToken = (token) => {
+    if (!token) return;
+    try {
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
+    } catch {
+        // Ignore storage errors in private mode.
+    }
+};
+
+const clearPersistedAuthToken = () => {
+    try {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+    } catch {
+        // Ignore storage errors in private mode.
+    }
+};
+
+const resolveAuthErrorMessage = (err, fallbackMessage) => {
+    const serverMessage = err?.response?.data?.message;
+    if (serverMessage) return serverMessage;
+
+    if (err?.code === "ERR_NETWORK") {
+        return `Cannot reach server (${API_BASE_URL}). Ensure backend is running and port ${API_DEV_PORT} is allowed in firewall.`;
+    }
+
+    return err?.message || fallbackMessage;
+};
 
 export const registerUser = createAsyncThunk("auth/register",
     async (userData, { rejectWithValue }) => {
         try {
             const response = await axiosClient.post("/user/register", userData);
             console.log(response.data.user);
+            persistAuthToken(response?.data?.user?.token);
             return response.data.user;
         }
         catch (err) {
-            return rejectWithValue(err.response.data.message || "Registration failed");
+            return rejectWithValue(resolveAuthErrorMessage(err, "Registration failed"));
         }
     });
 
@@ -18,10 +49,11 @@ export const loginUser = createAsyncThunk("auth/login",
         try {
 
             const response = await axiosClient.post("/user/login", credentials);
+            persistAuthToken(response?.data?.user?.token);
             return response.data.user;
         }
         catch (err) {
-            return rejectWithValue(err.response.data.message || "Login failed");
+            return rejectWithValue(resolveAuthErrorMessage(err, "Login failed"));
         }
     });
 
@@ -32,7 +64,7 @@ export const checkAuthStatus = createAsyncThunk("auth/check",
             return response.data.user;
         }
         catch (err) {
-            return rejectWithValue(err.response.data.message || "Authentication check failed");
+            return rejectWithValue(resolveAuthErrorMessage(err, "Authentication check failed"));
         }
     });
 
@@ -40,10 +72,11 @@ export const logoutUser = createAsyncThunk("auth/logout",
     async (_, { rejectWithValue }) => {
         try {
             await axiosClient.post("/user/logout");
+            clearPersistedAuthToken();
             return null; // Clear user data on logout
         }
         catch (err) {
-            return rejectWithValue(err.response.data.message || "Logout failed");
+            return rejectWithValue(resolveAuthErrorMessage(err, "Logout failed"));
         }
     });
 const authSlice = createSlice({

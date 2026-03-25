@@ -1,128 +1,146 @@
-import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { logoutUser } from "../app/features/auth/authSlice.js";
+import { logoutUser } from '../app/features/auth/authSlice.js';
 
 const Navbar = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const [openMenu, setOpenMenu] = useState(false);
+  const menuRef = useRef(null);
 
   const handleLogout = () => {
     dispatch(logoutUser());
+    setOpenMenu(false);
+    navigate('/login');
   };
 
   const initials = user?.firstName
     ? user.firstName.slice(0, 2).toUpperCase()
     : 'GU';
+  const displayName = `${user?.firstName || 'User'} ${user?.lastName || ''}`.trim();
+  const availableTokens = Number.isFinite(Number(user?.tokens)) ? Number(user.tokens) : 0;
+
+  useEffect(() => {
+    const closeOnOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenu(false);
+      }
+    };
+
+    window.addEventListener('mousedown', closeOnOutside);
+    return () => window.removeEventListener('mousedown', closeOnOutside);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 bg-white/90 backdrop-blur-md px-4 sm:px-10 py-3 shadow-sm font-display">
-      {/* Left: Logo + nav links */}
+    <header className="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap px-4 sm:px-8 py-3 border-b border-indigo-400/20 bg-[#070d1b]/80 backdrop-blur-xl">
       <div className="flex items-center gap-8">
-        <Link to="/" className="flex items-center gap-3 text-green-600 group">
-          <div className="size-8 flex items-center justify-center bg-green-600 rounded-lg text-white shadow-md shadow-green-500/20">
+        <Link to="/" className="flex items-center gap-3 text-indigo-300 group">
+          <div className="size-8 flex items-center justify-center bg-indigo-500 rounded-lg text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]">
             <span className="material-symbols-outlined text-[20px] leading-none">code</span>
           </div>
-          <h2 className="text-slate-900 text-lg font-bold leading-tight tracking-tight group-hover:text-green-600 transition-colors">
+          <h2 className="text-white text-lg font-bold leading-tight tracking-tight group-hover:text-indigo-300 transition-colors">
             CodePrep
           </h2>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">
           <NavLink
-            to="/"
+            to="/explore"
             className={({ isActive }) =>
-              `text-sm font-medium transition-colors ${isActive ? 'text-green-600' : 'text-slate-600 hover:text-green-600'}`
+              `text-sm font-medium transition-all duration-300 ${isActive ? 'text-indigo-300' : 'text-slate-300 hover:text-white'}`
             }
           >
             Problems
           </NavLink>
           <NavLink
-            to="/dashboard"
+            to="/mock-interview-setup"
             className={({ isActive }) =>
-              `text-sm font-medium transition-colors ${isActive ? 'text-green-600' : 'text-slate-600 hover:text-green-600'}`
+              `text-sm font-medium transition-all duration-300 ${isActive ? 'text-indigo-300' : 'text-slate-300 hover:text-white'}`
             }
           >
-            Dashboard
+            Interview
           </NavLink>
           <NavLink
             to="/discussions"
             className={({ isActive }) =>
-              `text-sm font-medium transition-colors ${isActive ? 'text-green-600' : 'text-slate-600 hover:text-green-600'}`
+              `text-sm font-medium transition-all duration-300 ${isActive ? 'text-indigo-300' : 'text-slate-300 hover:text-white'}`
             }
           >
-            Discussions
+            Discuss
           </NavLink>
-          <a
-            className="text-sm font-medium text-slate-400 cursor-not-allowed"
-            title="Coming Soon"
-          >
-            Contest
-          </a>
           <NavLink
             to="/plans"
             className={({ isActive }) =>
-              `text-sm font-medium transition-colors ${isActive ? 'text-green-600' : 'text-slate-600 hover:text-green-600'}`
+              `text-sm font-medium transition-all duration-300 ${isActive ? 'text-indigo-300' : 'text-slate-300 hover:text-white'}`
             }
           >
             Upgrade
           </NavLink>
-
-          {user?.role === 'admin' && (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `text-sm font-medium transition-colors ${isActive ? 'text-green-600' : 'text-slate-600 hover:text-green-600'}`
-              }
-            >
-              Admin Panel
-            </NavLink>
-          )}
         </nav>
       </div>
 
-      {/* Right: actions + user */}
-      <div className="flex items-center gap-4">
-        <div className="hidden sm:flex w-full max-w-xs items-center rounded-lg bg-slate-100 border border-transparent focus-within:border-green-600 focus-within:ring-1 focus-within:ring-green-600 transition-all">
-            <div className="text-slate-400 flex items-center justify-center pl-3">
-                <span className="material-symbols-outlined text-[20px]">search</span>
+      <div className="flex items-center gap-3 relative" ref={menuRef}>
+        <div className="relative group">
+          <button
+            onClick={() => setOpenMenu((prev) => !prev)}
+            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2 py-1 hover:bg-white/10 transition-colors"
+          >
+            <div className="h-8 w-8 rounded-full bg-indigo-500 text-white border border-indigo-300/40 overflow-hidden flex items-center justify-center text-xs font-bold">
+              {user?.profileImage ? (
+                <img src={user.profileImage} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
-            <input className="w-full bg-transparent border-none text-sm text-slate-900 placeholder:text-slate-400 focus:ring-0 py-2 pl-2" placeholder="Search problems, users..."/>
+            <span className="material-symbols-outlined text-[18px] text-slate-300">expand_more</span>
+          </button>
+          <div className="pointer-events-none absolute right-0 top-11 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 rounded-lg border border-white/10 bg-[#0b1020]/95 px-3 py-2 text-xs text-slate-200 shadow-xl whitespace-nowrap">
+            <div className="font-semibold text-white">{displayName}</div>
+            <div className="text-indigo-300 mt-0.5">Tokens: {availableTokens}</div>
+          </div>
         </div>
-        <div className="flex gap-2">
-            {/* Notification bell */}
-            <button className="flex size-9 items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition-colors relative">
-                <span className="material-symbols-outlined text-[20px]">notifications</span>
-                <span className="absolute top-2 right-2 size-2 bg-green-600 rounded-full border-2 border-white"></span>
+
+        {openMenu && (
+          <div className="absolute right-0 top-12 z-60 w-44 rounded-xl border border-white/10 bg-[#0b1020]/95 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col">
+            <button
+              onClick={() => {
+                navigate('/dashboard');
+                setOpenMenu(false);
+              }}
+              className="block w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10"
+            >
+              Dashboard
             </button>
-            <div className="h-9 w-[1px] bg-slate-200 mx-1"></div>
-            
-            {/* User section */}
-            <div className="flex items-center gap-2">
-                <div className="text-right hidden sm:block mr-1">
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">Signed in as</div>
-                    <div className="text-sm font-bold text-slate-900 leading-none">{user?.firstName || 'Guest'}</div>
-                </div>
-
-                {/* Avatar */}
-                <div className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-green-500 text-white font-bold text-sm border-2 border-slate-100">
-                    {user?.profileImage ? (
-                        <img src={user.profileImage} alt="Profile" className="size-full object-cover" />
-                    ) : (
-                        initials
-                    )}
-                </div>
-
-                {/* Logout */}
-                <button
-                    onClick={handleLogout}
-                    title="Logout"
-                    className="flex items-center justify-center h-9 w-9 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors ml-1"
-                >
-                    <span className="material-symbols-outlined text-[18px]">logout</span>
-                </button>
-            </div>
-        </div>
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => {
+                  navigate('/admin');
+                  setOpenMenu(false);
+                }}
+                className="block w-full text-left px-4 py-2.5 text-sm text-indigo-300 hover:bg-indigo-500/10"
+              >
+                Admin Panel
+              </button>
+            )}
+            <button
+              onClick={() => {
+                navigate('/settings');
+                setOpenMenu(false);
+              }}
+              className="block w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10"
+            >
+              Settings
+            </button>
+            <button
+              onClick={handleLogout}
+              className="block w-full text-left px-4 py-2.5 text-sm text-rose-300 hover:bg-rose-500/10"
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

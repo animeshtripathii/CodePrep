@@ -1,17 +1,10 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
-.glass-panel {
-    background: rgba(13, 204, 242, 0.03);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(13, 204, 242, 0.15);
-}
-.glass-panel:hover {
-    border-color: rgba(13, 204, 242, 0.3);
-}
+/* App-specific custom glow states */
 .glow-border:focus-within {
-    box-shadow: 0 0 15px rgba(13, 204, 242, 0.2);
-    border-color: #0dccf2;
+    box-shadow: 0 0 20px rgba(19, 91, 236, 0.3);
+    border-color: #135bec;
 }
 .custom-scroll::-webkit-scrollbar {
     width: 6px;

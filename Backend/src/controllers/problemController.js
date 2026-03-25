@@ -65,7 +65,8 @@ const getProblemById = async (req, res) => {
 
 const getAllProblem = async (req, res) => {
     try {
-        const result = await problemService.getAllProblems(req.query);
+        const userId = req.result ? req.result._id : null;
+        const result = await problemService.getAllProblems(req.query, userId);
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ message: "Internal Server Error", error: error.message });

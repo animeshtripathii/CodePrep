@@ -6,16 +6,32 @@ const paymentWebHook = async (req, res) => {
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers['x-razorpay-signature'];
+    if (!webhookSecret || !signature) {
+      return res.status(400).json({ error: 'Missing webhook secret or signature' });
+    }
+
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.from(JSON.stringify(req.body || {}), 'utf8');
     
     const expectedSignature = crypto.createHmac('sha256', webhookSecret)
-      .update(JSON.stringify(req.body))
+      .update(rawBody)
       .digest('hex');
+
+    const providedSignature = String(signature);
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+    const providedBuffer = Buffer.from(providedSignature, 'utf8');
+    const validSignature =
+      expectedBuffer.length === providedBuffer.length &&
+      crypto.timingSafeEqual(expectedBuffer, providedBuffer);
       
-    if (signature !== expectedSignature) {
+    if (!validSignature) {
       return res.status(400).json({ error: 'Invalid signature' });
     }
     
-    const event = JSON.parse(JSON.stringify(req.body));
+    const event = Buffer.isBuffer(req.body)
+      ? JSON.parse(rawBody.toString('utf8'))
+      : req.body;
     
     if (event.event === 'payment.captured') {
       const payment = event.payload.payment.entity;
@@ -30,8 +46,10 @@ const paymentWebHook = async (req, res) => {
       await order.save();
       
       const user = await User.findById(order.user);
-      user.tokens += order.tokens;
-      await user.save();
+      if (user) {
+        user.tokens += order.tokens;
+        await user.save();
+      }
     }
     
   

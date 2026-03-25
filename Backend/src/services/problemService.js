@@ -1,5 +1,6 @@
 const problemModel = require('../models/problem');
 const User = require('../models/user');
+const submissionModel = require('../models/submission');
 const Video = require('../models/videoSolution');
 const { getLanguageId, submitBatch, submitToken } = require('../utils/problemSubmissionUtility');
 
@@ -132,7 +133,7 @@ const updateExistingProblem = async (problemId, problemData) => {
 
     const newProblem = await problemModel.findByIdAndUpdate(problemId, {
         ...problemData
-    }, { runValidators: true, new: true });
+    }, { runValidators: true, returnDocument: 'after' });
 
     return newProblem;
 };
@@ -163,12 +164,13 @@ const getProblem = async (problemId) => {
     return DsaProblem;
 };
 
-const getAllProblems = async (queryData) => {
+const getAllProblems = async (queryData, userId) => {
     const page = parseInt(queryData.page) || 1;
     const limit = parseInt(queryData.limit) || 10;
     const search = queryData.search || '';
     const difficulty = queryData.difficulty || '';
     const tag = queryData.tag || '';
+    const status = queryData.status || '';
     const skip = (page - 1) * limit;
 
     const query = {};
@@ -183,6 +185,22 @@ const getAllProblems = async (queryData) => {
 
     if (tag) {
         query.tags = { $in: [tag] };
+    }
+
+    if (status && userId) {
+        const user = await User.findById(userId);
+        if (user) {
+            const solvedIds = user.problemSolved.map(id => id.toString());
+            if (status.toLowerCase() === 'solved') {
+                query._id = { $in: user.problemSolved };
+            } else if (status.toLowerCase() === 'unsolved') {
+                query._id = { $nin: user.problemSolved };
+            } else if (status.toLowerCase() === 'attempted') {
+                const attemptedSubmissions = await submissionModel.find({ userId: userId }).distinct('problemId');
+                const attemptedNotSolved = attemptedSubmissions.filter(pid => !solvedIds.includes(pid.toString()));
+                query._id = { $in: attemptedNotSolved };
+            }
+        }
     }
 
     const allProblem = await problemModel.find(query)

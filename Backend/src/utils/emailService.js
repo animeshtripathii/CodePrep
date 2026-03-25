@@ -196,5 +196,43 @@ const sendPlanActivationEmail = async (to, details) => {
     }
 };
 
-module.exports = { sendResetPasswordEmail, sendPlanActivationEmail };
+const sendOtpEmail = async (to, otp, purpose = 'verification') => {
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.EMAIL_USER;
+
+    if (!apiKey || !senderEmail) {
+        throw new Error("Email service not configured.");
+    }
+
+    const actionLabel = purpose === 'signup' ? 'complete your signup' : 'verify your email change';
+
+    const emailData = {
+        sender: { name: "CodePrep", email: senderEmail },
+        to: [{ email: to }],
+        subject: "Your CodePrep OTP Code",
+        htmlContent: `
+            <div style="font-family:Segoe UI,Tahoma,sans-serif;background:#f8fafc;padding:24px;">
+                <div style="max-width:480px;margin:auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                    <div style="padding:20px 24px;background:linear-gradient(135deg,#6366f1,#2563eb);color:white;">
+                        <h2 style="margin:0;font-size:20px;">CodePrep OTP Verification</h2>
+                    </div>
+                    <div style="padding:24px;color:#334155;">
+                        <p style="margin:0 0 10px;">Use this OTP to ${actionLabel}:</p>
+                        <div style="font-size:30px;font-weight:800;letter-spacing:6px;color:#1e293b;margin:14px 0;">${otp}</div>
+                        <p style="margin:0;color:#64748b;font-size:13px;">This OTP expires in 10 minutes. Do not share this code with anyone.</p>
+                    </div>
+                </div>
+            </div>
+        `,
+    };
+
+    await axios.post(BREVO_API_URL, emailData, {
+        headers: {
+            'api-key': apiKey,
+            'Content-Type': 'application/json'
+        }
+    });
+};
+
+module.exports = { sendResetPasswordEmail, sendPlanActivationEmail, sendOtpEmail };
 

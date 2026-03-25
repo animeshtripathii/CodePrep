@@ -53,7 +53,8 @@ const login = async (req, res) => {
       problemSolved: existingUser.problemSolved,
       role: existingUser.role,
       tokens: existingUser.tokens,
-      profileImage: existingUser.profileImage
+      profileImage: existingUser.profileImage,
+      token: token
     }
     res.status(200).json({
       message: 'Login successful',
@@ -93,8 +94,7 @@ const logout = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    const existingUser = await authService.verifyUserProfile(token);
+    const existingUser = req.result;
 
     res.status(200).json({
       user: {
@@ -170,7 +170,6 @@ const checkAuth = (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     const { emailId } = req.body;
-    console.log("Forgot password attempt for:", emailId);
     if (!emailId) {
       return res.status(400).json({ message: 'Email is required.' });
     }
@@ -206,4 +205,104 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, getProfile, adminRegister, deleteProfile, getDashboardStats, checkAuth, forgotPassword, resetPassword, updateProfile };
+const requestSignupOtp = async (req, res) => {
+  try {
+    validate(req.body);
+    const result = await authService.requestSignupOtp(req.body);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+const verifySignupOtp = async (req, res) => {
+  try {
+    const { emailId, otp } = req.body;
+    if (!emailId || !otp) {
+      return res.status(400).json({ message: 'Email and OTP are required' });
+    }
+
+    const { newUser, token } = await authService.verifySignupOtp({ emailId, otp });
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'None' : 'Lax',
+      maxAge: 60 * 60 * 1000
+    });
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: {
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        emailId: newUser.emailId,
+        _id: newUser._id,
+        role: newUser.role,
+        tokens: newUser.tokens,
+        token,
+        profileImage: newUser.profileImage
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+const requestEmailUpdateOtp = async (req, res) => {
+  try {
+    const userId = req.result._id;
+    const { newEmail } = req.body;
+    if (!newEmail) {
+      return res.status(400).json({ message: 'New email is required' });
+    }
+    const result = await authService.requestEmailUpdateOtp(userId, newEmail);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+const verifyEmailUpdateOtp = async (req, res) => {
+  try {
+    const userId = req.result._id;
+    const { newEmail, otp } = req.body;
+    if (!newEmail || !otp) {
+      return res.status(400).json({ message: 'New email and OTP are required' });
+    }
+    const updatedUser = await authService.verifyEmailUpdateOtp(userId, newEmail, otp);
+    res.status(200).json({
+      message: 'Email updated successfully',
+      user: {
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        emailId: updatedUser.emailId,
+        _id: updatedUser._id,
+        role: updatedUser.role,
+        tokens: updatedUser.tokens,
+        profileImage: updatedUser.profileImage
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  logout,
+  getProfile,
+  adminRegister,
+  deleteProfile,
+  getDashboardStats,
+  checkAuth,
+  forgotPassword,
+  resetPassword,
+  updateProfile,
+  requestSignupOtp,
+  verifySignupOtp,
+  requestEmailUpdateOtp,
+  verifyEmailUpdateOtp
+};

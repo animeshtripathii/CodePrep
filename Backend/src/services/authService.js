@@ -3,9 +3,17 @@ const submission = require("../models/submission");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const validator = require('validator');
 const redisClient = require("../config/redis");
-const { sendResetPasswordEmail } = require('../utils/emailService');
+const { sendResetPasswordEmail, sendOtpEmail } = require('../utils/emailService');
 const cloudinary = require('../utils/cloudinary');
+const EmailOtp = require('../models/EmailOtp');
+
+const OTP_EXPIRY_MINUTES = 10;
+const MAX_OTP_ATTEMPTS = 5;
+
+const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+const hashOtp = (otp) => crypto.createHash('sha256').update(String(otp)).digest('hex');
 
 const registerUser = async (userData) => {
     const { firstName, lastName, emailId, password } = userData;
@@ -287,10 +295,176 @@ const updateUserProfile = async (userId, updateData) => {
         }
     }
 
-    const updatedUser = await user.findByIdAndUpdate(userId, updates, { new: true });
+    const updatedUser = await user.findByIdAndUpdate(userId, updates, { returnDocument: 'after' });
     if (!updatedUser) {
         throw new Error('User not found');
     }
+    return updatedUser;
+};
+
+const requestSignupOtp = async (userData) => {
+    const { firstName, lastName, emailId, password } = userData;
+    const normalizedEmail = String(emailId || '').trim().toLowerCase();
+    const normalizedLastName = String(lastName || '').trim();
+
+    if (!validator.isEmail(normalizedEmail)) {
+        throw new Error('Invalid email format');
+    }
+
+    const existingUser = await user.findOne({ emailId: normalizedEmail });
+    if (existingUser) {
+        throw new Error('An account with this email already exists');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const otp = generateOtp();
+    const otpHash = hashOtp(otp);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    await EmailOtp.findOneAndUpdate(
+        { emailId: normalizedEmail, purpose: 'signup', userId: null },
+        {
+            emailId: normalizedEmail,
+            purpose: 'signup',
+            otpHash,
+            expiresAt,
+            attempts: 0,
+            userId: null,
+            payload: {
+                firstName: String(firstName || '').trim(),
+                lastName: normalizedLastName || null,
+                password: hashedPassword,
+            },
+        },
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    );
+
+    await sendOtpEmail(normalizedEmail, otp, 'signup');
+    return { message: 'OTP sent to your email' };
+};
+
+const verifySignupOtp = async ({ emailId, otp }) => {
+    const normalizedEmail = String(emailId || '').trim().toLowerCase();
+    const record = await EmailOtp.findOne({ emailId: normalizedEmail, purpose: 'signup', userId: null });
+
+    if (!record || !record.expiresAt || record.expiresAt.getTime() < Date.now()) {
+        throw new Error('OTP expired or invalid. Please request a new OTP.');
+    }
+
+    const incomingHash = hashOtp(otp);
+    if (incomingHash !== record.otpHash) {
+        record.attempts = (record.attempts || 0) + 1;
+        if (record.attempts >= MAX_OTP_ATTEMPTS) {
+            await record.deleteOne();
+            throw new Error('Too many invalid OTP attempts. Please request a new OTP.');
+        }
+        await record.save();
+        throw new Error('Invalid OTP');
+    }
+
+    const existingUser = await user.findOne({ emailId: normalizedEmail });
+    if (existingUser) {
+        await record.deleteOne();
+        throw new Error('An account with this email already exists');
+    }
+
+    const userPayload = {
+        firstName: record.payload?.firstName,
+        emailId: normalizedEmail,
+        password: record.payload?.password,
+        role: 'user',
+    };
+
+    if (record.payload?.lastName) {
+        userPayload.lastName = record.payload.lastName;
+    }
+
+    const newUser = await user.create(userPayload);
+
+    await record.deleteOne();
+
+    const token = jwt.sign(
+        { _id: newUser._id, role: 'user', emailId: newUser.emailId },
+        process.env.JWT_Secret_Key,
+        { expiresIn: '1h' }
+    );
+
+    return { newUser, token };
+};
+
+const requestEmailUpdateOtp = async (userId, newEmail) => {
+    const normalizedEmail = String(newEmail || '').trim().toLowerCase();
+    if (!validator.isEmail(normalizedEmail)) {
+        throw new Error('Invalid email format');
+    }
+
+    const existingUser = await user.findById(userId);
+    if (!existingUser) throw new Error('User not found');
+    if (existingUser.emailId === normalizedEmail) {
+        throw new Error('New email cannot be the same as current email');
+    }
+
+    const taken = await user.findOne({ emailId: normalizedEmail });
+    if (taken) throw new Error('Email is already in use');
+
+    const otp = generateOtp();
+    const otpHash = hashOtp(otp);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    await EmailOtp.findOneAndUpdate(
+        { emailId: normalizedEmail, purpose: 'email_update', userId },
+        {
+            emailId: normalizedEmail,
+            purpose: 'email_update',
+            otpHash,
+            expiresAt,
+            attempts: 0,
+            userId,
+            payload: {},
+        },
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    );
+
+    await sendOtpEmail(normalizedEmail, otp, 'email_update');
+    return { message: 'OTP sent to new email' };
+};
+
+const verifyEmailUpdateOtp = async (userId, newEmail, otp) => {
+    const normalizedEmail = String(newEmail || '').trim().toLowerCase();
+    const record = await EmailOtp.findOne({
+        emailId: normalizedEmail,
+        purpose: 'email_update',
+        userId,
+    });
+
+    if (!record || !record.expiresAt || record.expiresAt.getTime() < Date.now()) {
+        throw new Error('OTP expired or invalid. Please request a new OTP.');
+    }
+
+    const incomingHash = hashOtp(otp);
+    if (incomingHash !== record.otpHash) {
+        record.attempts = (record.attempts || 0) + 1;
+        if (record.attempts >= MAX_OTP_ATTEMPTS) {
+            await record.deleteOne();
+            throw new Error('Too many invalid OTP attempts. Please request a new OTP.');
+        }
+        await record.save();
+        throw new Error('Invalid OTP');
+    }
+
+    const taken = await user.findOne({ emailId: normalizedEmail });
+    if (taken) {
+        await record.deleteOne();
+        throw new Error('Email is already in use');
+    }
+
+    const updatedUser = await user.findByIdAndUpdate(
+        userId,
+        { emailId: normalizedEmail },
+        { returnDocument: 'after' }
+    );
+
+    await record.deleteOne();
     return updatedUser;
 };
 
@@ -304,5 +478,9 @@ module.exports = {
     getDashboardStatsService,
     forgotPassword,
     resetPassword,
-    updateUserProfile
+    updateUserProfile,
+    requestSignupOtp,
+    verifySignupOtp,
+    requestEmailUpdateOtp,
+    verifyEmailUpdateOtp
 };

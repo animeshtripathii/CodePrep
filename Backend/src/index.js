@@ -3,9 +3,11 @@ const app = require("./app");
 const connectDB = require('./config/db');
 const redisClient = require('./config/redis');
 const http = require('http');
-const { initSocketServer } = require('./sockets/chatHandler');
-
+const { initSocketServer, getIo } = require('./sockets/chatHandler');
+const { initMockInterviewSocket } = require('./sockets/mockInterviewHandler');
+require('./workers/submissionWorker'); // Start BullMQ Worker
 const PORT = process.env.PORT || 10000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 async function startServer() {
   try {
@@ -13,10 +15,12 @@ async function startServer() {
     if (!redisClient.isOpen) await redisClient.connect();
     console.log("Redis connected successfully");
     const httpServer = http.createServer(app);
-    initSocketServer(httpServer); 
+    initSocketServer(httpServer);
+    const io = getIo();
+    initMockInterviewSocket(io);
 
-    httpServer.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    httpServer.listen(PORT, HOST, () => {
+      console.log(`Server running on ${HOST}:${PORT}`);
     });
   } catch (err) {
     console.error("Startup error:", err);
