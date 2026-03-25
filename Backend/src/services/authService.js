@@ -34,8 +34,6 @@ const registerUser = async (userData) => {
         role: 'user' // Enforcing role as per original controller logic
     });
 
-    console.log("New user registered:", newUser);
-
     const token = jwt.sign(
         { _id: newUser._id, role: 'user', emailId: newUser.emailId },
         process.env.JWT_Secret_Key,
@@ -51,7 +49,6 @@ const loginUser = async (emailId, password) => {
     }
 
     const existingUser = await user.findOne({ emailId });
-    console.log("Login attempt for email:", existingUser);
 
     if (!existingUser) {
         throw new Error('Invalid Credentials');

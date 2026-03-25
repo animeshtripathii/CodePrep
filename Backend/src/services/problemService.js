@@ -32,7 +32,6 @@ const createNewProblem = async (problemData, userId) => {
         }));
 
         const submitResult = await submitBatch(submission);
-        console.log("Submission Result for reference solution:", submitResult);
 
         if (!Array.isArray(submitResult)) {
             throw new Error("Submission failed at Judge0: " + JSON.stringify(submitResult));
@@ -40,7 +39,6 @@ const createNewProblem = async (problemData, userId) => {
 
         const resultToken = submitResult.map((res) => res.token);
         const testResult = await submitToken(resultToken);
-        console.log("Test Result for reference solution:", testResult);
 
         for (const result of testResult) {
             switch (result.status.id) {
@@ -102,7 +100,6 @@ const updateExistingProblem = async (problemId, problemData) => {
         }));
 
         const submitResult = await submitBatch(submission);
-        console.log("Submission Result for reference solution:", submitResult);
 
         if (!Array.isArray(submitResult)) {
             throw new Error("Submission failed at Judge0: " + JSON.stringify(submitResult));
@@ -110,7 +107,6 @@ const updateExistingProblem = async (problemId, problemData) => {
 
         const resultToken = submitResult.map((res) => res.token);
         const testResult = await submitToken(resultToken);
-        console.log("Test Result for reference solution:", testResult);
 
         for (const result of testResult) {
             switch (result.status.id) {

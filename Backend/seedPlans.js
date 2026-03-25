@@ -15,7 +15,6 @@ async function seedPlans() {
     try {
         await Plan.deleteMany({}); // clearing existing plans to avoid duplicates
         await Plan.insertMany(plans);
-        console.log("Plans seeded successfully");
     } catch (err) {
         console.error("Error seeding plans:", err);
     } finally {

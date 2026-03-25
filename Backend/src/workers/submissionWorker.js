@@ -8,7 +8,6 @@ const { getLanguageId } = require("../utils/problemSubmissionUtility");
 
 // The Worker processes the queue asynchronously
 const worker = new Worker("code-submissions", async (job) => {
-    console.log(`[Worker] Started Code Submission Job: ${job.id}`);
     const { userId, problemId, code, language, submissionId, skipDriverCode } = job.data;
 
     try {

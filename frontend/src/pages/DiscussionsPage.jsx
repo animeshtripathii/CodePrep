@@ -102,7 +102,6 @@ const DiscussionsPage = () => {
         });
 
         newSocket.on("connect", () => {
-            console.log("Socket connected!");
             newSocket.emit("join_problem_room", { problemId: activeProblem._id }, async (response) => {
                 if (response.error) {
                     setAccessDeniedMessage(response.error);

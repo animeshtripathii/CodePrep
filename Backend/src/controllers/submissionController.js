@@ -29,7 +29,6 @@ const submitCode = async (req, res) => {
 };
 
 const runCode = async (req, res) => {
-    console.log("Received run code request with body:", req.body);
     try {
         const userId = req.result._id;
         const problemId = req.params.problemId;

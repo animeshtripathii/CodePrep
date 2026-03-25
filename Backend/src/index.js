@@ -13,14 +13,12 @@ async function startServer() {
   try {
     await connectDB();
     if (!redisClient.isOpen) await redisClient.connect();
-    console.log("Redis connected successfully");
     const httpServer = http.createServer(app);
     initSocketServer(httpServer);
     const io = getIo();
     initMockInterviewSocket(io);
 
     httpServer.listen(PORT, HOST, () => {
-      console.log(`Server running on ${HOST}:${PORT}`);
     });
   } catch (err) {
     console.error("Startup error:", err);

@@ -114,8 +114,6 @@ const initSocketServer = (httpServer) => {
         }
     });
 
-    console.log("Socket.io initialized for Discussions");
-
     // Middleware for Auth
     io.use(async (socket, next) => {
         try {
@@ -143,8 +141,6 @@ const initSocketServer = (httpServer) => {
     });
 
     io.on("connection", (socket) => {
-        console.log(`User connected to Chat: ${socket.user.firstName}`);
-
         // --- JOIN PUBLIC PROBLEM ROOM (`Problem-123-Room-1`) ---
         socket.on("join_problem_room", async ({ problemId }, cb) => {
             try {
@@ -338,7 +334,6 @@ Focus only on programming and DSA topics.`
         });
 
         socket.on("disconnect", async () => {
-            console.log(`User disconnected from Chat: ${socket.user.firstName}`);
             if (socket.currentRoom && socket.baseRoom) {
                 try {
                     // Decrement room stats logically

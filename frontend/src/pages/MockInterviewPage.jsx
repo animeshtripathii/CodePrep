@@ -184,6 +184,7 @@ const MockInterviewPage = () => {
     const remoteStreamRef = useRef(null);
     const peerConnection = useRef(null);
     const peerTargetSocketIdRef = useRef(null);
+    const pendingIceCandidatesRef = useRef([]);
     const makingOfferRef = useRef(false);
     const localStreamPromiseRef = useRef(null);
     const [hasCameraAccess, setHasCameraAccess] = useState(false);
@@ -218,6 +219,27 @@ const MockInterviewPage = () => {
     const [isAiSpeaking, setIsAiSpeaking] = useState(false);
     const [aiInterviewStarted, setAiInterviewStarted] = useState(false);
     const hasEndedRef = useRef(false);
+    const rtcIceServers = useMemo(() => {
+        const servers = [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ];
+
+        const rawTurnUrls = import.meta.env.VITE_TURN_URLS || import.meta.env.VITE_TURN_URL || '';
+        const turnUrls = String(rawTurnUrls)
+            .split(',')
+            .map((url) => url.trim())
+            .filter(Boolean);
+
+        if (turnUrls.length > 0) {
+            const turnServer = { urls: turnUrls };
+            if (import.meta.env.VITE_TURN_USERNAME) turnServer.username = import.meta.env.VITE_TURN_USERNAME;
+            if (import.meta.env.VITE_TURN_CREDENTIAL) turnServer.credential = import.meta.env.VITE_TURN_CREDENTIAL;
+            servers.push(turnServer);
+        }
+
+        return servers;
+    }, []);
     const handleEndInterviewRef = useRef(null);
     const exampleCases = useMemo(() => (
         Array.isArray(problem?.examples) && problem.examples.length > 0
@@ -422,15 +444,30 @@ const MockInterviewPage = () => {
         }
 
         const pc = new RTCPeerConnection({
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
-            ]
+            iceServers: rtcIceServers,
+            iceCandidatePoolSize: 10
         });
 
         pc.onicecandidate = (event) => {
             if (event.candidate) {
                 newSocket.emit('webrtc_ice_candidate', { roomId, candidate: event.candidate, target: peerTargetSocketIdRef.current });
+            }
+        };
+
+        pc.oniceconnectionstatechange = async () => {
+            if (pc.iceConnectionState !== 'failed') return;
+            if (!newSocket?.connected || !peerTargetSocketIdRef.current) return;
+            if (pc.signalingState !== 'stable') return;
+
+            try {
+                if (typeof pc.restartIce === 'function') {
+                    pc.restartIce();
+                }
+                const restartOffer = await pc.createOffer({ iceRestart: true });
+                await pc.setLocalDescription(restartOffer);
+                newSocket.emit('webrtc_offer', { roomId, offer: restartOffer, target: peerTargetSocketIdRef.current });
+            } catch (err) {
+                console.error('ICE restart failed', err);
             }
         };
 
@@ -475,6 +512,22 @@ const MockInterviewPage = () => {
         return pc;
     };
 
+    const flushPendingIceCandidates = useCallback(async () => {
+        const pc = peerConnection.current;
+        if (!pc || !pc.remoteDescription) return;
+
+        const queued = pendingIceCandidatesRef.current;
+        pendingIceCandidatesRef.current = [];
+
+        for (const candidate of queued) {
+            try {
+                await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (err) {
+                console.error('Failed to apply queued ICE candidate', err);
+            }
+        }
+    }, []);
+
     const initiateWebRTC = async (newSocket, targetSocketId) => {
         if (mode === 'peer' && !peerRoomJoined) return;
         if (peerConnection.current && (peerConnection.current.connectionState === 'connected' || peerConnection.current.connectionState === 'connecting')) {
@@ -516,6 +569,7 @@ const MockInterviewPage = () => {
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         newSocket.emit('webrtc_answer', { roomId, answer, target: fromSocketId });
+        await flushPendingIceCandidates();
     };
 
     // ── Socket initialization ─────────────────────────────────────
@@ -615,7 +669,6 @@ const MockInterviewPage = () => {
         });
 
         newSocket.on('connect', () => {
-            console.log('✅ Connected to mock interview namespace! Socket ID:', newSocket.id);
             // Always join room on connect. Media readiness is handled in WebRTC setup.
             if (mode === 'peer') {
                 peerJoinAttemptedRef.current = true;
@@ -684,6 +737,7 @@ const MockInterviewPage = () => {
              if (mode !== 'peer') return;
              if (peerConnection.current) {
                  await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
+                 await flushPendingIceCandidates();
              }
         });
 
@@ -691,6 +745,10 @@ const MockInterviewPage = () => {
              if (mode !== 'peer') return;
              if (peerConnection.current) {
                  try {
+                     if (!peerConnection.current.remoteDescription) {
+                         pendingIceCandidatesRef.current.push(candidate);
+                         return;
+                     }
                      await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
                  } catch (e) {
                      console.error('Error adding received ice candidate', e);
@@ -732,9 +790,10 @@ const MockInterviewPage = () => {
         setSocket(newSocket);
         
         return () => {
+             pendingIceCandidatesRef.current = [];
              newSocket.disconnect();
         };
-    }, [roomId, mode, user?.token]);
+    }, [roomId, mode, user?.token, flushPendingIceCandidates]);
 
     // Join peer rooms once socket is connected (camera may be unavailable and should not block joining).
     useEffect(() => {
@@ -976,7 +1035,6 @@ const MockInterviewPage = () => {
                  recognition.onstart = () => setIsListening(true);
                  recognition.onresult = (event) => {
                      const transcript = event.results[0][0].transcript;
-                     console.log("🎤 User spoke:", transcript);
                      processAiInput(transcript);
                  };
                  recognition.onerror = () => setIsListening(false);

@@ -88,7 +88,6 @@ const sendResetPasswordEmail = async (to, resetUrl) => {
                 'Content-Type': 'application/json'
             }
         });
-        console.log(`Reset email sent (via Brevo API) to ${to}. MessageId: ${response.data.messageId}`);
     } catch (error) {
         console.error("Brevo API Reset Email Error:", error.response?.data || error.message);
         throw new Error("Failed to send reset email.");
@@ -189,7 +188,6 @@ const sendPlanActivationEmail = async (to, details) => {
                 'Content-Type': 'application/json'
             }
         });
-        console.log(`Activation email sent (via Brevo API) to ${to}. MessageId: ${response.data.messageId}`);
     } catch (error) {
         console.error("Brevo API Activation Email Error:", error.response?.data || error.message);
         throw new Error("Failed to send activation email.");

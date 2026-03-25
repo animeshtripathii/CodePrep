@@ -87,7 +87,6 @@ const Plans = () => {
                     }
                 }
             };
-console.log("RAZORPAY OPTIONS:", options);
             const rzp = new window.Razorpay(options);
             rzp.on('payment.failed', function (response){
                 toast.error("Payment failed. Please try again.");

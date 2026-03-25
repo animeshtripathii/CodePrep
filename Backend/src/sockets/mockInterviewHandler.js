@@ -36,12 +36,6 @@ const initMockInterviewSocket = (io) => {
     const roomMap = {};
 
     mockIo.on('connection', (socket) => {
-        console.log(`User connected to Mock Interview: ${socket.user.firstName} (socket=${socket.id}, transport=${socket.conn.transport.name})`);
-
-        socket.conn.on('upgrade', (transport) => {
-            console.log(`Mock Interview transport upgraded for ${socket.id}: ${transport.name}`);
-        });
-
         socket.on('join_interview', ({ roomId, mode, cvText, role, cvFileName }, cb) => {
             // mode: "peer" or "ai"
             if (mode === 'ai') {
@@ -172,8 +166,6 @@ const initMockInterviewSocket = (io) => {
         });
 
         socket.on('ai_voice_message', async ({ roomId, text }, cb) => {
-            console.log(`[MockInterview] Received voice message from ${socket.user.firstName}: "${text}" in room: ${roomId}`);
-            
             try {
                 if (socket.user.tokens < 2) {
                     console.error("[MockInterview] Insufficient tokens.");
@@ -182,7 +174,6 @@ const initMockInterviewSocket = (io) => {
                 }
                 
                 await User.updateOne({ _id: socket.user._id }, { $inc: { tokens: -5 } });
-                console.log("[MockInterview] Tokens deducted successfully.");
                 
                 let codeContext = "";
                 if (roomMap[roomId]) {
@@ -204,8 +195,6 @@ The candidate just said: "${text}".
 ${codeContext}
 ${cvContext}
 Respond concisely as an interviewer. Only ask questions related to the "${roleContext}" role and their answers/CV/Code. Evaluate their approach or code, but YOU MUST ALWAYS END YOUR RESPONSE WITH A FOLLOW-UP QUESTION to advance the interview. Keep it conversational. Do not output markdown. Keep your responses under 3 sentences if possible. ALWAYS ask a question.`;
-
-                console.log("[MockInterview] Generating content via Gemini...");
                 
                 const generationConfig = {
                     temperature: 0.9,
@@ -247,27 +236,20 @@ Respond concisely as an interviewer. Only ask questions related to the "${roleCo
 
                 const response = await chatSession.sendMessage(systemInstruction);
 
-                console.log("[MockInterview] Gemini Raw Response Received");
-
                 // Get text via the helper function provided by @google/generative-ai
                 const replyText = response.response.text();
                 
                 // Append this exchange to the history so context is maintained
                 roomMap[roomId].chatHistory.push({ role: "user", parts: [{ text: systemInstruction }] });
                 roomMap[roomId].chatHistory.push({ role: "model", parts: [{ text: replyText }] });
-                
-                console.log(`[MockInterview] AI Reply generated: ${replyText}`);
 
                 // Send response back
                 if (typeof cb === 'function') {
-                    console.log("[MockInterview] Executing frontend callback...");
                     cb({
                         success: true,
                         replyText: replyText
                     });
                 }
-                
-                console.log("[MockInterview] Broadcasting response to room:", roomId);
                 mockIo.to(roomId).emit('ai_response', { text: replyText });
 
             } catch (err) {
@@ -278,7 +260,6 @@ Respond concisely as an interviewer. Only ask questions related to the "${roleCo
         });
 
         socket.on('disconnect', (reason) => {
-            console.log(`Mock Interview disconnect: ${socket.id}, reason=${reason}`);
             const roomId = socket.roomId;
             if (roomId && roomMap[roomId]) {
                 roomMap[roomId].users = roomMap[roomId].users.filter(u => u.socketId !== socket.id);
