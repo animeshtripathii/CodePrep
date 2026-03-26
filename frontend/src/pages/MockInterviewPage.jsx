@@ -288,6 +288,21 @@ const MockInterviewPage = () => {
                     localVideoRef.current.srcObject = stream;
                 }
                 setHasCameraAccess(true);
+
+                // If React 18 StrictMode restarted this component, the old tracks in the peer connection
+                // are dead. We must replace them dynamically without renegotiating WebRTC.
+                if (peerConnection.current) {
+                    const senders = peerConnection.current.getSenders();
+                    stream.getTracks().forEach((track) => {
+                        const sender = senders.find((s) => s.track && s.track.kind === track.kind);
+                        if (sender && sender.track.readyState === 'ended') {
+                            sender.replaceTrack(track);
+                        } else if (!sender) {
+                            peerConnection.current.addTrack(track, stream);
+                        }
+                    });
+                }
+
                 return stream;
             })
             .catch((err) => {
@@ -474,21 +489,23 @@ const MockInterviewPage = () => {
         pc.ontrack = (event) => {
             if (!remoteVideoRef.current) return;
 
-            // Some browsers emit empty event.streams; build a MediaStream from tracks in that case.
-            if (!remoteStreamRef.current) {
-                remoteStreamRef.current = new MediaStream();
-            }
-
+            // Handle the stream
             if (event.streams && event.streams[0]) {
                 remoteStreamRef.current = event.streams[0];
             } else if (event.track) {
+                if (!remoteStreamRef.current) {
+                    remoteStreamRef.current = new MediaStream();
+                }
                 const alreadyAdded = remoteStreamRef.current.getTracks().some((t) => t.id === event.track.id);
                 if (!alreadyAdded) {
                     remoteStreamRef.current.addTrack(event.track);
                 }
             }
 
-            remoteVideoRef.current.srcObject = remoteStreamRef.current;
+            // Always assign standard react streams
+            if (remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
+                remoteVideoRef.current.srcObject = remoteStreamRef.current;
+            }
             setHasRemoteStream(true);
 
             const playPromise = remoteVideoRef.current.play?.();

@@ -54,6 +54,7 @@ const Navbar = () => {
           >
             Problems
           </NavLink>
+          {/* TEMPORARILY DISABLED FOR USERS
           <NavLink
             to="/mock-interview-setup"
             className={({ isActive }) =>
@@ -62,6 +63,7 @@ const Navbar = () => {
           >
             Interview
           </NavLink>
+          */}
           <NavLink
             to="/discussions"
             className={({ isActive }) =>

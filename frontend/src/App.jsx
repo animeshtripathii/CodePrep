@@ -50,6 +50,7 @@ const App = () => {
   const authRedirectState = { from: location };
   const renderLazy = (element) => <Suspense fallback={<RouteLoader />}>{element}</Suspense>;
   const requireAuth = (element) => (isAuthenticated ? renderLazy(element) : <Navigate to="/login" state={authRedirectState} replace />);
+  const requireAdmin = (element) => (isAuthenticated && user?.role === 'admin' ? renderLazy(element) : <Navigate to="/" replace />);
   const loginRedirectPath = location.state?.from
     ? `${location.state.from.pathname || ''}${location.state.from.search || ''}${location.state.from.hash || ''}`
     : '/';
@@ -79,8 +80,8 @@ const App = () => {
         <Route path="/admin" element={isAuthenticated&& user?.role==="admin" ? renderLazy(<Admin />) : <Navigate to="/login" state={authRedirectState} replace />} />
         <Route path="/editor/:id" element={requireAuth(<CodeEditorPage />)} />
         <Route path="/problems/:id" element={requireAuth(<CodeEditorPage />)} />
-        <Route path="/mock-interview-setup" element={requireAuth(<MockInterviewSetup />)} />
-        <Route path="/mock-interview/:id" element={requireAuth(<MockInterviewPage />)} />
+        <Route path="/mock-interview-setup" element={requireAdmin(<MockInterviewSetup />)} />
+        <Route path="/mock-interview/:id" element={requireAdmin(<MockInterviewPage />)} />
         <Route path="/timed-session" element={requireAuth(<TimedSessionPage />)} />
         <Route path="/plans" element={requireAuth(<Plans />)} />
         <Route path="/discussions" element={requireAuth(<DiscussionsPage />)} />
