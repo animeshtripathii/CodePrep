@@ -34,9 +34,17 @@ const initMockInterviewSocket = (io) => {
     mockIo.use(mockAuthMiddleware);
 
     const roomMap = {};
+    const deadRooms = new Set();
 
     mockIo.on('connection', (socket) => {
         socket.on('join_interview', ({ roomId, mode, cvText, role, cvFileName }, cb) => {
+            if (deadRooms.has(roomId)) {
+                if (typeof cb === 'function') {
+                    cb({ success: false, message: "This interview room has been closed by the creator.", isClosed: true });
+                }
+                return;
+            }
+
             // mode: "peer" or "ai"
             if (mode === 'ai') {
                 if (!cvText || !String(cvText).trim()) {
@@ -56,7 +64,12 @@ const initMockInterviewSocket = (io) => {
             }
 
             if (!roomMap[roomId]) {
-                roomMap[roomId] = { users: [], code: "", language: "javascript" };
+                roomMap[roomId] = { 
+                    users: [], 
+                    code: "", 
+                    language: "javascript",
+                    creatorUserId: socket.user._id 
+                };
             }
 
             socket.join(roomId);
@@ -265,8 +278,13 @@ Respond concisely as an interviewer. Only ask questions related to the "${roleCo
                 roomMap[roomId].users = roomMap[roomId].users.filter(u => u.socketId !== socket.id);
                 socket.to(roomId).emit('user_left', { socketId: socket.id });
 
-                // Clean up room if empty
-                if (roomMap[roomId].users.length === 0 || (roomMap[roomId].users.length === 1 && roomMap[roomId].users[0].isAI)) {
+                if (socket.mode === 'peer' && String(roomMap[roomId].creatorUserId) === String(socket.user._id)) {
+                    // Emit event to all users that creator left, so everyone is kicked out
+                    mockIo.to(roomId).emit('room_invalidated', { message: 'The creator has ended this interview or disconnected.' });
+                    delete roomMap[roomId]; // Destroy the room
+                    deadRooms.add(roomId);
+                } else if (roomMap[roomId].users.length === 0 || (roomMap[roomId].users.length === 1 && roomMap[roomId].users[0].isAI)) {
+                    // Clean up room if empty
                     delete roomMap[roomId];
                 }
             }

@@ -592,6 +592,9 @@ const MockInterviewPage = () => {
                     if (response?.message) {
                         toast.error(response.message);
                     }
+                    if (response?.isClosed) {
+                        setTimeout(() => navigate('/'), 2000);
+                    }
                     return;
                 }
 
@@ -753,6 +756,9 @@ const MockInterviewPage = () => {
                  } catch (e) {
                      console.error('Error adding received ice candidate', e);
                  }
+             } else {
+                 // peerConnection might not be instantiated yet (e.g. waiting for camera permission)
+                 pendingIceCandidatesRef.current.push(candidate);
              }
         });
 
@@ -785,6 +791,11 @@ const MockInterviewPage = () => {
 
         newSocket.on('clear_whiteboard', () => {
              window.dispatchEvent(new CustomEvent('peer_clear_whiteboard'));
+        });
+
+        newSocket.on('room_invalidated', ({ message }) => {
+             toast.error(message || "This room is no longer valid.");
+             navigate('/');
         });
 
         setSocket(newSocket);
