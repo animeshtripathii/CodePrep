@@ -537,9 +537,12 @@ const MockInterviewPage = () => {
         const pc = createPeerConnection(newSocket, targetSocketId);
         try {
             makingOfferRef.current = true;
-            const offer = await pc.createOffer();
+            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
             await pc.setLocalDescription(offer);
             newSocket.emit('webrtc_offer', { roomId, offer, target: targetSocketId });
+            await flushPendingIceCandidates();
+        } catch (err) {
+            console.error('Error initiating WebRTC offer:', err);
         } finally {
             makingOfferRef.current = false;
         }
@@ -1113,9 +1116,14 @@ const MockInterviewPage = () => {
 
     const handleExitToDashboard = useCallback(() => {
         setShowEndChoiceModal(false);
-        if (socket) socket.disconnect();
+        if (socket) {
+            if (mode === 'peer') {
+                socket.emit('end_interview', { roomId });
+            }
+            socket.disconnect();
+        }
         navigate('/');
-    }, [socket, navigate]);
+    }, [socket, navigate, mode, roomId]);
 
     const handleGenerateReportChoice = useCallback(() => {
         setShowEndChoiceModal(false);
@@ -1237,12 +1245,12 @@ const MockInterviewPage = () => {
                 {/* Header Action Buttons */}
                 {mode !== 'ai' && (
                     <div className="flex items-center gap-3">
-                        <Link 
-                            to="/" 
+                        <button 
+                            onClick={handleExitToDashboard}
                             className="bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm backdrop-blur-sm"
                         >
                             Leave Room
-                        </Link>
+                        </button>
                     </div>
                 )}
             </header>

@@ -272,6 +272,14 @@ Respond concisely as an interviewer. Only ask questions related to the "${roleCo
             }
         });
 
+        socket.on('end_interview', ({ roomId }) => {
+            if (roomMap[roomId] && String(roomMap[roomId].creatorUserId) === String(socket.user._id)) {
+                mockIo.to(roomId).emit('room_invalidated', { message: 'The creator has ended this interview.' });
+                delete roomMap[roomId];
+                deadRooms.add(roomId);
+            }
+        });
+
         socket.on('disconnect', (reason) => {
             const roomId = socket.roomId;
             if (roomId && roomMap[roomId]) {
