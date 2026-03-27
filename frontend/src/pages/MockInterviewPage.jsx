@@ -219,7 +219,10 @@ const MockInterviewPage = () => {
     const [isAiSpeaking, setIsAiSpeaking] = useState(false);
     const [aiInterviewStarted, setAiInterviewStarted] = useState(false);
     const hasEndedRef = useRef(false);
-    const rtcIceServers = useMemo(() => {
+    const iceServersRef = useRef(null);
+    const getIceServers = React.useCallback(async () => {
+        if (iceServersRef.current) return iceServersRef.current;
+        
         const servers = [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' }
@@ -238,6 +241,22 @@ const MockInterviewPage = () => {
             servers.push(turnServer);
         }
 
+        const apiKey = import.meta.env.VITE_METERED_API_KEY;
+        const domain = import.meta.env.VITE_METERED_DOMAIN || 'codeprep.metered.live';
+        if (apiKey) {
+            try {
+                const response = await fetch(`https://${domain}/api/v1/turn/credentials?apiKey=${apiKey}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                if (data && Array.isArray(data)) {
+                    servers.push(...data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch TURN credentials from Metered API:", err);
+            }
+        }
+        
+        iceServersRef.current = servers;
         return servers;
     }, []);
     const handleEndInterviewRef = useRef(null);
@@ -451,15 +470,16 @@ const MockInterviewPage = () => {
         };
     }, [mode, ensureLocalStream]);
 
-    const createPeerConnection = (newSocket, targetSocketId) => {
+    const createPeerConnection = async (newSocket, targetSocketId) => {
         peerTargetSocketIdRef.current = targetSocketId;
 
         if (peerConnection.current && peerConnection.current.signalingState !== 'closed') {
             return peerConnection.current;
         }
 
+        const iceServers = await getIceServers();
         const pc = new RTCPeerConnection({
-            iceServers: rtcIceServers,
+            iceServers: iceServers,
             iceCandidatePoolSize: 10
         });
 
@@ -551,7 +571,7 @@ const MockInterviewPage = () => {
             return;
         }
         await ensureLocalStream();
-        const pc = createPeerConnection(newSocket, targetSocketId);
+        const pc = await createPeerConnection(newSocket, targetSocketId);
         try {
             makingOfferRef.current = true;
             const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
@@ -567,7 +587,7 @@ const MockInterviewPage = () => {
 
     const handleReceiveOffer = async (newSocket, offer, fromSocketId) => {
         await ensureLocalStream();
-        const pc = createPeerConnection(newSocket, fromSocketId);
+        const pc = await createPeerConnection(newSocket, fromSocketId);
 
         // Collision-safe negotiation: one peer politely accepts rollback on glare.
         const polite = String(newSocket.id) > String(fromSocketId);
