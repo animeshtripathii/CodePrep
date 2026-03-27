@@ -24,4 +24,21 @@ const submissionQueue = new Queue('code-submissions', {
 // Used to listen for completion events synchronously if needed
 const queueEvents = new QueueEvents('code-submissions', { connection, skipVersionCheck: true });
 
+queueEvents.on('completed', ({ jobId }) => {
+    console.log('[SubmissionQueue] job completed event', { jobId: String(jobId) });
+});
+
+queueEvents.on('failed', ({ jobId, failedReason }) => {
+    console.error('[SubmissionQueue] job failed event', {
+        jobId: String(jobId),
+        failedReason
+    });
+});
+
+queueEvents.on('error', (error) => {
+    console.error('[SubmissionQueue] queue events error', {
+        message: error?.message || String(error)
+    });
+});
+
 module.exports = { submissionQueue, queueEvents, connection };

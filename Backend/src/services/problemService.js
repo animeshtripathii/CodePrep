@@ -37,11 +37,21 @@ const createNewProblem = async (problemData, userId) => {
             throw new Error("Submission failed at Judge0: " + JSON.stringify(submitResult));
         }
 
-        const resultToken = submitResult.map((res) => res.token);
+        const resultToken = submitResult.map((res) => res?.token).filter(Boolean);
+        if (resultToken.length !== submitResult.length) {
+            throw new Error("Judge0 did not return valid submission tokens");
+        }
         const testResult = await submitToken(resultToken);
 
+        if (!Array.isArray(testResult)) {
+            throw new Error("Failed to retrieve results from Judge0: " + JSON.stringify(testResult));
+        }
+
         for (const result of testResult) {
-            switch (result.status.id) {
+            const statusId = result?.status?.id ?? result?.status_id;
+            const statusDescription = result?.status?.description ?? "Unknown";
+
+            switch (statusId) {
                 case 3:
                     continue; // Accepted
                 case 4:
@@ -51,8 +61,8 @@ const createNewProblem = async (problemData, userId) => {
                 case 6:
                     throw new Error("Compilation Error in reference solution");
                 default:
-                    if (result.status.id > 6) {
-                        throw new Error(`Runtime Error (${result.status.description}) in reference solution`);
+                    if (statusId > 6) {
+                        throw new Error(`Runtime Error (${statusDescription}) in reference solution`);
                     }
                     throw new Error("Unknown error in reference solution");
             }
@@ -105,11 +115,21 @@ const updateExistingProblem = async (problemId, problemData) => {
             throw new Error("Submission failed at Judge0: " + JSON.stringify(submitResult));
         }
 
-        const resultToken = submitResult.map((res) => res.token);
+        const resultToken = submitResult.map((res) => res?.token).filter(Boolean);
+        if (resultToken.length !== submitResult.length) {
+            throw new Error("Judge0 did not return valid submission tokens");
+        }
         const testResult = await submitToken(resultToken);
 
+        if (!Array.isArray(testResult)) {
+            throw new Error("Failed to retrieve results from Judge0: " + JSON.stringify(testResult));
+        }
+
         for (const result of testResult) {
-            switch (result.status.id) {
+            const statusId = result?.status?.id ?? result?.status_id;
+            const statusDescription = result?.status?.description ?? "Unknown";
+
+            switch (statusId) {
                 case 3:
                     continue; // Accepted
                 case 4:
@@ -119,8 +139,8 @@ const updateExistingProblem = async (problemId, problemData) => {
                 case 6:
                     throw new Error("Compilation Error in reference solution");
                 default:
-                    if (result.status.id > 6) {
-                        throw new Error(`Runtime Error (${result.status.description}) in reference solution`);
+                    if (statusId > 6) {
+                        throw new Error(`Runtime Error (${statusDescription}) in reference solution`);
                     }
                     throw new Error("Unknown error in reference solution");
             }

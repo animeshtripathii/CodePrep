@@ -4,11 +4,27 @@ const { getLanguageId, submitBatch, submitToken } = require("../utils/problemSub
 const { submissionQueue, queueEvents } = require("../queues/submissionQueue");
 
 const processCodeSubmission = async (userId, problemId, code, language, reqResult, options = {}) => {
+    console.log("[SubmissionService] processCodeSubmission start", {
+        userId: String(userId),
+        problemId: String(problemId),
+        language,
+        skipDriverCode: !!options.skipDriverCode
+    });
+
     if (!code || !language || !problemId || !userId) {
         throw new Error("Some required fields are missing");
     }
 
     const problem = await problemModel.findById(problemId);
+
+    if (!problem) {
+        throw new Error("Problem not found");
+    }
+
+    console.log("[SubmissionService] problem loaded", {
+        problemId: String(problemId),
+        hiddenTestCasesCount: problem?.hiddenTestCases?.length || 0
+    });
 
     const submittedResult = await submissionModel.create({
         userId,
@@ -17,6 +33,11 @@ const processCodeSubmission = async (userId, problemId, code, language, reqResul
         language,
         status: "pending",
         testCasesTotal: problem.hiddenTestCases.length,
+    });
+
+    console.log("[SubmissionService] submission document created", {
+        submissionId: String(submittedResult._id),
+        status: submittedResult.status
     });
 
     // Add to BullMQ Queue
@@ -29,18 +50,40 @@ const processCodeSubmission = async (userId, problemId, code, language, reqResul
         skipDriverCode: !!options.skipDriverCode
     });
 
+    console.log("[SubmissionService] queue job added", {
+        jobId: String(job.id),
+        submissionId: String(submittedResult._id)
+    });
+
     // Wait for the worker to finish processing the Judge0 requests
     const result = await job.waitUntilFinished(queueEvents);
+
+    console.log("[SubmissionService] queue job finished", {
+        jobId: String(job.id),
+        submissionId: String(submittedResult._id),
+        finalStatus: result?.submission?.status || null
+    });
 
     return result; // Result returned natively from worker after completion
 };
 
 const executeCode = async (userId, problemId, code, language, options = {}) => {
+    console.log("[SubmissionService] executeCode start", {
+        userId: String(userId),
+        problemId: String(problemId),
+        language,
+        skipDriverCode: !!options.skipDriverCode
+    });
+
     if (!code || !language || !problemId || !userId) {
         throw new Error("Some required fields are missing");
     }
 
     const problem = await problemModel.findById(problemId);
+
+    if (!problem) {
+        throw new Error("Problem not found");
+    }
 
     const languageId = getLanguageId(language);
     if (!languageId) {
@@ -67,18 +110,44 @@ const executeCode = async (userId, problemId, code, language, options = {}) => {
         throw new Error("Submission failed at Judge0: " + JSON.stringify(submitResult));
     }
 
-    const resultToken = submitResult.map((res) => res.token);
+    console.log("[SubmissionService] submitBatch success", {
+        problemId: String(problemId),
+        submissionCount: submitResult.length
+    });
+
+    const resultToken = submitResult.map((res) => res?.token).filter(Boolean);
+    if (resultToken.length !== submitResult.length) {
+        throw new Error("Judge0 did not return valid submission tokens");
+    }
     const testResult = await submitToken(resultToken);
 
     if (!Array.isArray(testResult)) {
         throw new Error("Failed to retrieve results from Judge0: " + JSON.stringify(testResult));
     }
 
+    console.log("[SubmissionService] submitToken success", {
+        problemId: String(problemId),
+        tokenCount: resultToken.length,
+        resultCount: testResult.length
+    });
+
     return { testResult };
 };
 
 const getSubmissionsForProblem = async (userId, problemId) => {
+    console.log("[SubmissionService] getSubmissionsForProblem", {
+        userId: String(userId),
+        problemId: String(problemId)
+    });
+
     const submissions = await submissionModel.find({ userId, problemId }).sort({ createdAt: -1 });
+
+    console.log("[SubmissionService] getSubmissionsForProblem success", {
+        userId: String(userId),
+        problemId: String(problemId),
+        count: submissions.length
+    });
+
     return submissions;
 };
 

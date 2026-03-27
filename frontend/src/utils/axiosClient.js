@@ -54,6 +54,16 @@ axiosClient.interceptors.request.use((config) => {
 axiosClient.interceptors.response.use(
     (response) => response,
     async (error) => {
+        // Handle 401 Unauthorized (e.g. JWT expired)
+        if (error.response?.status === 401) {
+            const msg = error.response.data?.message;
+            if (msg === "jwt expired" || msg === "Login or Signup required" || msg?.includes("Session expired")) {
+                localStorage.removeItem("codeprep_auth_token");
+                // Optional: window.location.href = '/login'; 
+                // But usually we let the app state handle the redirect.
+            }
+        }
+
         const shouldRetryLocalFallback =
             error?.code === "ERR_NETWORK" &&
             error?.config &&

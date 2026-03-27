@@ -44,9 +44,13 @@ const userMiddleware = async (req, res, next) => {
         req.result = result;
         next();
     } catch (error) {
+        if (error.message === 'jwt expired') {
+            // Quietly handle common session expiration to reduce log noise
+            return res.status(401).json({ message: 'Session expired. Please login again.' });
+        }
         console.error("Middleware Error:", error.message);
         res.status(401).json({ message: error.message || 'Authentication failed' });
     }
-};
+}
 
 module.exports = userMiddleware;

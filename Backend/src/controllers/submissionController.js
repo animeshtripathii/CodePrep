@@ -9,6 +9,14 @@ const submitCode = async (req, res) => {
         const problemId = req.params.problemId;
         const { code, language, interviewMode } = req.body;
 
+        console.log("[SubmissionController] submitCode start", {
+            userId: String(userId),
+            problemId: String(problemId),
+            language,
+            interviewMode: !!interviewMode,
+            codeLength: code ? code.length : 0
+        });
+
         const result = await submissionService.processCodeSubmission(
             userId,
             problemId,
@@ -18,11 +26,24 @@ const submitCode = async (req, res) => {
             { skipDriverCode: !!interviewMode }
         );
 
+        console.log("[SubmissionController] submitCode success", {
+            userId: String(userId),
+            problemId: String(problemId),
+            submissionId: result?.submission?._id ? String(result.submission._id) : null,
+            status: result?.submission?.status || null
+        });
+
         res.status(200).json(result);
     } catch (error) {
         console.error("Error submitting code:", error);
         if (error.message.includes("Some required fields are missing") || error.message.includes("Unsupported language")) {
             return res.status(400).json({ message: error.message });
+        }
+        if (error.message === "Problem not found") {
+            return res.status(404).json({ message: error.message });
+        }
+        if (error.message.includes("Failed to retrieve results from Judge0") || error.message.includes("Submission failed at Judge0")) {
+            return res.status(502).json({ message: "Judge0 service unavailable or returned an invalid response", error: error.message });
         }
         res.status(500).json({ message: error.message });
     }
@@ -34,8 +55,22 @@ const runCode = async (req, res) => {
         const problemId = req.params.problemId;
         const { code, language, interviewMode } = req.body;
 
+        console.log("[SubmissionController] runCode start", {
+            userId: String(userId),
+            problemId: String(problemId),
+            language,
+            interviewMode: !!interviewMode,
+            codeLength: code ? code.length : 0
+        });
+
         const result = await submissionService.executeCode(userId, problemId, code, language, {
             skipDriverCode: !!interviewMode
+        });
+
+        console.log("[SubmissionController] runCode success", {
+            userId: String(userId),
+            problemId: String(problemId),
+            testResultCount: Array.isArray(result?.testResult) ? result.testResult.length : 0
         });
 
         res.status(200).json(result);
@@ -43,6 +78,12 @@ const runCode = async (req, res) => {
         console.error("Error submitting code:", error);
         if (error.message.includes("Some required fields are missing") || error.message.includes("Unsupported language")) {
             return res.status(400).json({ message: error.message });
+        }
+        if (error.message === "Problem not found") {
+            return res.status(404).json({ message: error.message });
+        }
+        if (error.message.includes("Failed to retrieve results from Judge0") || error.message.includes("Submission failed at Judge0")) {
+            return res.status(502).json({ message: "Judge0 service unavailable or returned an invalid response", error: error.message });
         }
         res.status(500).json({ message: error.message });
     }
@@ -52,7 +93,20 @@ const getSubmissions = async (req, res) => {
     try {
         const userId = req.result._id;
         const problemId = req.params.problemId;
+
+        console.log("[SubmissionController] getSubmissions start", {
+            userId: String(userId),
+            problemId: String(problemId)
+        });
+
         const submissions = await submissionService.getSubmissionsForProblem(userId, problemId);
+
+        console.log("[SubmissionController] getSubmissions success", {
+            userId: String(userId),
+            problemId: String(problemId),
+            count: submissions.length
+        });
+
         res.status(200).json(submissions);
     } catch (error) {
         res.status(500).json({ message: error.message });

@@ -8,6 +8,9 @@ const createProblem = async (req, res) => {
         if (error.message.includes("Unsupported language") || error.message.includes("Wrong Answer") || error.message.includes("Time Limit") || error.message.includes("Compilation Error")) {
             return res.status(400).json({ message: error.message });
         }
+        if (error.message.includes("Failed to retrieve results from Judge0") || error.message.includes("Submission failed at Judge0")) {
+            return res.status(502).json({ message: "Judge0 service unavailable or returned an invalid response", error: error.message });
+        }
         res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 }
@@ -26,6 +29,9 @@ const updateProblem = async (req, res) => {
         }
         if (error.message.includes("Unsupported language") || error.message.includes("Wrong Answer") || error.message.includes("Time Limit") || error.message.includes("Compilation Error")) {
             return res.status(400).json({ message: error.message });
+        }
+        if (error.message.includes("Failed to retrieve results from Judge0") || error.message.includes("Submission failed at Judge0")) {
+            return res.status(502).json({ message: "Judge0 service unavailable or returned an invalid response", error: error.message });
         }
         res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
