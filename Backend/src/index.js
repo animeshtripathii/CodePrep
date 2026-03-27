@@ -19,6 +19,7 @@ async function startServer() {
     initMockInterviewSocket(io);
 
     httpServer.listen(PORT, HOST, () => {
+      console.log(`[Server] Running on ${HOST}:${PORT} | NODE_ENV=${process.env.NODE_ENV} | FRONTEND_URL=${process.env.FRONTEND_URL}`);
     });
   } catch (err) {
     console.error("Startup error:", err);

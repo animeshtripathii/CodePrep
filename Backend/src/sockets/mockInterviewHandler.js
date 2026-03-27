@@ -34,11 +34,58 @@ const initMockInterviewSocket = (io) => {
     mockIo.use(mockAuthMiddleware);
 
     const roomMap = {};
-    const deadRooms = new Set();
+    // deadRooms stores { roomId -> expiresAt timestamp }
+    // Entries expire after 5 minutes so the same roomId can be reused for new interviews.
+    const deadRooms = new Map();
+    const DEAD_ROOM_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+    const isDeadRoom = (roomId) => {
+        if (!deadRooms.has(roomId)) return false;
+        const expiresAt = deadRooms.get(roomId);
+        if (Date.now() > expiresAt) {
+            deadRooms.delete(roomId);
+            return false; // Expired — allow re-creation
+        }
+        return true;
+    };
+
+    // Periodic cleanup of expired dead rooms (every 2 minutes)
+    const cleanupInterval = setInterval(() => {
+        const now = Date.now();
+        for (const [roomId, expiresAt] of deadRooms) {
+            if (now > expiresAt) {
+                deadRooms.delete(roomId);
+            }
+        }
+    }, 2 * 60 * 1000);
+
+    // Clean up interval on process exit
+    process.on('SIGTERM', () => clearInterval(cleanupInterval));
+    process.on('SIGINT', () => clearInterval(cleanupInterval));
+
+    const invalidateRoom = (roomId, message) => {
+        console.log(`[MockInterview] Invalidating room ${roomId}: ${message}`);
+        mockIo.to(roomId).emit('room_invalidated', { message });
+        // Force all sockets to leave the room
+        const room = mockIo.adapter.rooms?.get(roomId);
+        if (room) {
+            for (const socketId of room) {
+                const s = mockIo.sockets.get(socketId);
+                if (s) s.leave(roomId);
+            }
+        }
+        delete roomMap[roomId];
+        deadRooms.set(roomId, Date.now() + DEAD_ROOM_TTL_MS);
+    };
 
     mockIo.on('connection', (socket) => {
+        console.log(`[MockInterview] Socket connected: ${socket.id} (user: ${socket.user.firstName})`);
+
         socket.on('join_interview', ({ roomId, mode, cvText, role, cvFileName }, cb) => {
-            if (deadRooms.has(roomId)) {
+            console.log(`[MockInterview] join_interview: user=${socket.user.firstName}, roomId=${roomId}, mode=${mode}`);
+
+            if (isDeadRoom(roomId)) {
+                console.log(`[MockInterview] Rejected join — room ${roomId} is dead`);
                 if (typeof cb === 'function') {
                     cb({ success: false, message: "This interview room has been closed by the creator.", isClosed: true });
                 }
@@ -68,8 +115,10 @@ const initMockInterviewSocket = (io) => {
                     users: [], 
                     code: "", 
                     language: "javascript",
+                    creatorSocketId: socket.id,
                     creatorUserId: socket.user._id 
                 };
+                console.log(`[MockInterview] Room created: ${roomId} by ${socket.user.firstName}`);
             }
 
             socket.join(roomId);
@@ -95,6 +144,8 @@ const initMockInterviewSocket = (io) => {
                 isAI: false
             });
 
+            console.log(`[MockInterview] Users in room ${roomId}:`, roomMap[roomId].users.map(u => u.firstName || u.socketId));
+
             // notify others in room
             socket.to(roomId).emit('user_joined', {
                 socketId: socket.id,
@@ -116,7 +167,6 @@ const initMockInterviewSocket = (io) => {
         socket.on('code_change', ({ roomId, code }) => {
             if (roomMap[roomId]) {
                 roomMap[roomId].code = code;
-                // Broadcast to everyone else in the room
                 socket.to(roomId).emit('code_update', { code });
             }
         });
@@ -131,13 +181,13 @@ const initMockInterviewSocket = (io) => {
         socket.on('submit_cv', ({ roomId, cvText }) => {
             if (roomMap[roomId]) {
                 roomMap[roomId].cvText = cvText;
-                // AI acknowledges CV
                 mockIo.to(roomId).emit('ai_response', { text: "I've received your CV. We can discuss it during our interview." });
             }
         });
 
         // ─── WebRTC Signaling ───
         socket.on('webrtc_offer', ({ roomId, offer, target }) => {
+            console.log(`[WebRTC] Offer from ${socket.id} -> ${target || 'room ' + roomId}`);
             if (target) {
                 socket.to(target).emit('webrtc_offer', { offer, from: socket.id });
             } else {
@@ -146,6 +196,7 @@ const initMockInterviewSocket = (io) => {
         });
 
         socket.on('webrtc_answer', ({ roomId, answer, target }) => {
+            console.log(`[WebRTC] Answer from ${socket.id} -> ${target || 'room ' + roomId}`);
             if (target) {
                 socket.to(target).emit('webrtc_answer', { answer, from: socket.id });
             } else {
@@ -229,7 +280,6 @@ Respond concisely as an interviewer. Only ask questions related to the "${roleCo
                     safetySettings
                 });
                 
-                // Keep track of chat history in the roomMap
                 if (!roomMap[roomId].chatHistory) {
                      roomMap[roomId].chatHistory = [
                          {
@@ -249,14 +299,11 @@ Respond concisely as an interviewer. Only ask questions related to the "${roleCo
 
                 const response = await chatSession.sendMessage(systemInstruction);
 
-                // Get text via the helper function provided by @google/generative-ai
                 const replyText = response.response.text();
                 
-                // Append this exchange to the history so context is maintained
                 roomMap[roomId].chatHistory.push({ role: "user", parts: [{ text: systemInstruction }] });
                 roomMap[roomId].chatHistory.push({ role: "model", parts: [{ text: replyText }] });
 
-                // Send response back
                 if (typeof cb === 'function') {
                     cb({
                         success: true,
@@ -273,26 +320,23 @@ Respond concisely as an interviewer. Only ask questions related to the "${roleCo
         });
 
         socket.on('end_interview', ({ roomId }) => {
+            console.log(`[MockInterview] end_interview event from ${socket.user.firstName} for room ${roomId}`);
             if (roomMap[roomId] && String(roomMap[roomId].creatorUserId) === String(socket.user._id)) {
-                mockIo.to(roomId).emit('room_invalidated', { message: 'The creator has ended this interview.' });
-                delete roomMap[roomId];
-                deadRooms.add(roomId);
+                invalidateRoom(roomId, 'The creator has ended this interview.');
             }
         });
 
         socket.on('disconnect', (reason) => {
+            console.log(`[MockInterview] Socket disconnected: ${socket.id} (user: ${socket.user.firstName}, reason: ${reason})`);
             const roomId = socket.roomId;
             if (roomId && roomMap[roomId]) {
                 roomMap[roomId].users = roomMap[roomId].users.filter(u => u.socketId !== socket.id);
                 socket.to(roomId).emit('user_left', { socketId: socket.id });
 
                 if (socket.mode === 'peer' && String(roomMap[roomId].creatorUserId) === String(socket.user._id)) {
-                    // Emit event to all users that creator left, so everyone is kicked out
-                    mockIo.to(roomId).emit('room_invalidated', { message: 'The creator has ended this interview or disconnected.' });
-                    delete roomMap[roomId]; // Destroy the room
-                    deadRooms.add(roomId);
+                    invalidateRoom(roomId, 'The creator has left this interview.');
                 } else if (roomMap[roomId].users.length === 0 || (roomMap[roomId].users.length === 1 && roomMap[roomId].users[0].isAI)) {
-                    // Clean up room if empty
+                    console.log(`[MockInterview] Room ${roomId} is empty, cleaning up.`);
                     delete roomMap[roomId];
                 }
             }

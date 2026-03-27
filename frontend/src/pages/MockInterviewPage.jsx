@@ -218,16 +218,23 @@ const MockInterviewPage = () => {
     const [showEndChoiceModal, setShowEndChoiceModal] = useState(false);
     const [isAiSpeaking, setIsAiSpeaking] = useState(false);
     const [aiInterviewStarted, setAiInterviewStarted] = useState(false);
+    const [iceConnectionState, setIceConnectionState] = useState('new');
     const hasEndedRef = useRef(false);
     const iceServersRef = useRef(null);
+    
+    // --- UPDATED WEBRTC ICE SERVER CONFIGURATION ---
     const getIceServers = React.useCallback(async () => {
         if (iceServersRef.current) return iceServersRef.current;
         
+        // 1. Array of free public STUN servers
         const servers = [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun.services.mozilla.com:3478' },
+            { urls: 'stun:stunserver.stunprotocol.org:3478' }
         ];
 
+        // 2. Optional: Manual TURN server configuration from your .env variables
         const rawTurnUrls = import.meta.env.VITE_TURN_URLS || import.meta.env.VITE_TURN_URL || '';
         const turnUrls = String(rawTurnUrls)
             .split(',')
@@ -240,25 +247,12 @@ const MockInterviewPage = () => {
             if (import.meta.env.VITE_TURN_CREDENTIAL) turnServer.credential = import.meta.env.VITE_TURN_CREDENTIAL;
             servers.push(turnServer);
         }
-
-        const apiKey = import.meta.env.VITE_METERED_API_KEY;
-        const domain = import.meta.env.VITE_METERED_DOMAIN || 'codeprep.metered.live';
-        if (apiKey) {
-            try {
-                const response = await fetch(`https://${domain}/api/v1/turn/credentials?apiKey=${apiKey}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                if (data && Array.isArray(data)) {
-                    servers.push(...data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch TURN credentials from Metered API:", err);
-            }
-        }
         
         iceServersRef.current = servers;
         return servers;
     }, []);
+    // --- END WEBRTC ICE SERVER CONFIGURATION ---
+
     const handleEndInterviewRef = useRef(null);
     const exampleCases = useMemo(() => (
         Array.isArray(problem?.examples) && problem.examples.length > 0
@@ -314,9 +308,9 @@ const MockInterviewPage = () => {
                     const senders = peerConnection.current.getSenders();
                     stream.getTracks().forEach((track) => {
                         const sender = senders.find((s) => s.track && s.track.kind === track.kind);
-                        if (sender && sender.track.readyState === 'ended') {
+                        if (sender) {
                             sender.replaceTrack(track);
-                        } else if (!sender) {
+                        } else {
                             peerConnection.current.addTrack(track, stream);
                         }
                     });
@@ -478,6 +472,7 @@ const MockInterviewPage = () => {
         }
 
         const iceServers = await getIceServers();
+        console.log('[WebRTC] Creating PeerConnection with ICE servers:', iceServers.length, 'servers');
         const pc = new RTCPeerConnection({
             iceServers: iceServers,
             iceCandidatePoolSize: 10
@@ -490,6 +485,8 @@ const MockInterviewPage = () => {
         };
 
         pc.oniceconnectionstatechange = async () => {
+            console.log('[WebRTC] ICE connection state:', pc.iceConnectionState);
+            setIceConnectionState(pc.iceConnectionState || 'unknown');
             if (pc.iceConnectionState !== 'failed') return;
             if (!newSocket?.connected || !peerTargetSocketIdRef.current) return;
             if (pc.signalingState !== 'stable') return;
@@ -507,6 +504,7 @@ const MockInterviewPage = () => {
         };
 
         pc.ontrack = (event) => {
+            console.log('[WebRTC] ontrack fired — kind:', event.track?.kind, 'streams:', event.streams?.length);
             if (!remoteVideoRef.current) return;
 
             // Handle the stream
@@ -566,12 +564,12 @@ const MockInterviewPage = () => {
     }, []);
 
     const initiateWebRTC = async (newSocket, targetSocketId) => {
-        if (mode === 'peer' && !peerRoomJoined) return;
         if (peerConnection.current && (peerConnection.current.connectionState === 'connected' || peerConnection.current.connectionState === 'connecting')) {
             return;
         }
         await ensureLocalStream();
         const pc = await createPeerConnection(newSocket, targetSocketId);
+        console.log('[WebRTC] Initiating offer to', targetSocketId);
         try {
             makingOfferRef.current = true;
             const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
@@ -712,6 +710,7 @@ const MockInterviewPage = () => {
         });
 
         newSocket.on('connect', () => {
+            console.log('[Socket] Connected to backend. Socket ID:', newSocket.id);
             // Always join room on connect. Media readiness is handled in WebRTC setup.
             if (mode === 'peer') {
                 peerJoinAttemptedRef.current = true;
@@ -746,6 +745,7 @@ const MockInterviewPage = () => {
              
              if (mode === 'peer' && newUser?.socketId) {
                  const shouldInitiate = String(newSocket.id) < String(newUser.socketId);
+                 console.log('[WebRTC] user_joined triggered. shouldInitiate:', shouldInitiate);
                  if (!shouldInitiate || peerConnection.current) {
                      return;
                  }
@@ -772,6 +772,7 @@ const MockInterviewPage = () => {
         });
 
         newSocket.on('webrtc_offer', async ({ offer, from }) => {
+             console.log('[WebRTC] Received offer from:', from);
              if (mode !== 'peer') return;
              await handleReceiveOffer(newSocket, offer, from);
         });
@@ -1657,7 +1658,7 @@ const MockInterviewPage = () => {
                                 {mode === 'ai' ? (
                                      <>
                                         <div className="absolute inset-0 bg-gradient-to-b from-indigo-900/20 to-black/60 z-0"></div>
-                                        {/* AI Avatar */}
+                                        {/* Loading State */}
                                         <div className="relative z-10 w-32 h-32 rounded-full border border-indigo-500/50 p-2 flex items-center justify-center bg-black/40 shadow-[0_0_50px_rgba(99,102,241,0.3)] backdrop-blur-md">
                                             <div className={`w-full h-full rounded-full flex items-center justify-center bg-gradient-to-br from-indigo-600 to-sky-600 shadow-inner transition-transform duration-300 ${isListening ? 'scale-105' : 'scale-100'}`}>
                                                 <span className="material-symbols-outlined text-5xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">smart_toy</span>
@@ -1673,6 +1674,11 @@ const MockInterviewPage = () => {
                                      </>
                                 ) : (
                                      <>
+                                        {/* ICE State Debugger */}
+                                        <div className="absolute top-4 left-4 z-50 rounded-md bg-black/60 px-2 py-1 text-[10px] items-center gap-2 font-mono text-slate-300 backdrop-blur-sm border border-white/10 flex">
+                                            <span>ICE:</span>
+                                            <span className={iceConnectionState === 'connected' || iceConnectionState === 'completed' ? 'text-emerald-400' : 'text-amber-400 font-bold'}>{iceConnectionState}</span>
+                                        </div>
                                         {/* Remote Video (Peer) */}
                                         <video 
                                             ref={remoteVideoRef} 
