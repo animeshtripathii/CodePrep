@@ -185,32 +185,7 @@ const initMockInterviewSocket = (io) => {
             }
         });
 
-        // ─── WebRTC Signaling ───
-        socket.on('webrtc_offer', ({ roomId, offer, target }) => {
-            console.log(`[WebRTC] Offer from ${socket.id} -> ${target || 'room ' + roomId}`);
-            if (target) {
-                socket.to(target).emit('webrtc_offer', { offer, from: socket.id });
-            } else {
-                socket.to(roomId).emit('webrtc_offer', { offer, from: socket.id });
-            }
-        });
-
-        socket.on('webrtc_answer', ({ roomId, answer, target }) => {
-            console.log(`[WebRTC] Answer from ${socket.id} -> ${target || 'room ' + roomId}`);
-            if (target) {
-                socket.to(target).emit('webrtc_answer', { answer, from: socket.id });
-            } else {
-                socket.to(roomId).emit('webrtc_answer', { answer, from: socket.id });
-            }
-        });
-
-        socket.on('webrtc_ice_candidate', ({ roomId, candidate, target }) => {
-            if (target) {
-                socket.to(target).emit('webrtc_ice_candidate', { candidate, from: socket.id });
-            } else {
-                socket.to(roomId).emit('webrtc_ice_candidate', { candidate, from: socket.id });
-            }
-        });
+        // WebRTC signaling removed — Agora SDK handles signaling internally
 
         // ─── Peer Chat & Whiteboard ───
         socket.on('peer_chat_message', ({ roomId, message }) => {

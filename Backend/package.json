@@ -18,6 +18,7 @@
     "@google/generative-ai": "^0.24.1",
     "@redis/client": "^5.10.0",
     "@sendgrid/mail": "^8.1.6",
+    "agora-token": "^2.0.5",
     "axios": "^1.13.4",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.2",

@@ -8,6 +8,7 @@ import axiosClient from '../utils/axiosClient';
 import { toast } from 'react-hot-toast';
 import io from 'socket.io-client';
 import ReactMarkdown from 'react-markdown';
+import AgoraRTC from 'agora-rtc-sdk-ng';
 
 const Whiteboard = ({ roomId, socket }) => {
     const canvasRef = useRef(null);
@@ -178,21 +179,17 @@ const MockInterviewPage = () => {
     const roleRef = useRef(location.state?.role || 'Software Engineer');
     const [cvFileName, setCvFileName] = useState(location.state?.cvFileName || null);
 
-    // WebRTC properties for Peer mode
+    // Agora RTC properties for Peer mode
     const localVideoRef = useRef(null);
-    const remoteVideoRef = useRef(null);
-    const remoteStreamRef = useRef(null);
-    const peerConnection = useRef(null);
-    const peerTargetSocketIdRef = useRef(null);
-    const pendingIceCandidatesRef = useRef([]);
-    const makingOfferRef = useRef(false);
-    const localStreamPromiseRef = useRef(null);
+    const agoraClientRef = useRef(null);
+    const localAudioTrackRef = useRef(null);
+    const localVideoTrackRef = useRef(null);
+    const [agoraRemoteUsers, setAgoraRemoteUsers] = useState([]);
     const [hasCameraAccess, setHasCameraAccess] = useState(false);
-    const [hasRemoteStream, setHasRemoteStream] = useState(false);
-    const [remoteAudioBlocked, setRemoteAudioBlocked] = useState(false);
     const peerJoinAttemptedRef = useRef(false);
     const [peerRoomJoined, setPeerRoomJoined] = useState(mode !== 'peer');
     const [peerJoinError, setPeerJoinError] = useState('');
+    const [agoraConnectionState, setAgoraConnectionState] = useState('DISCONNECTED');
 
     // Syncing code safely
     const editorRef = useRef(null);
@@ -218,40 +215,7 @@ const MockInterviewPage = () => {
     const [showEndChoiceModal, setShowEndChoiceModal] = useState(false);
     const [isAiSpeaking, setIsAiSpeaking] = useState(false);
     const [aiInterviewStarted, setAiInterviewStarted] = useState(false);
-    const [iceConnectionState, setIceConnectionState] = useState('new');
     const hasEndedRef = useRef(false);
-    const iceServersRef = useRef(null);
-    
-    // --- UPDATED WEBRTC ICE SERVER CONFIGURATION ---
-    const getIceServers = React.useCallback(async () => {
-        if (iceServersRef.current) return iceServersRef.current;
-        
-        // 1. Array of free public STUN servers
-        const servers = [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun.services.mozilla.com:3478' },
-            { urls: 'stun:stunserver.stunprotocol.org:3478' }
-        ];
-
-        // 2. Optional: Manual TURN server configuration from your .env variables
-        const rawTurnUrls = import.meta.env.VITE_TURN_URLS || import.meta.env.VITE_TURN_URL || '';
-        const turnUrls = String(rawTurnUrls)
-            .split(',')
-            .map((url) => url.trim())
-            .filter(Boolean);
-
-        if (turnUrls.length > 0) {
-            const turnServer = { urls: turnUrls };
-            if (import.meta.env.VITE_TURN_USERNAME) turnServer.username = import.meta.env.VITE_TURN_USERNAME;
-            if (import.meta.env.VITE_TURN_CREDENTIAL) turnServer.credential = import.meta.env.VITE_TURN_CREDENTIAL;
-            servers.push(turnServer);
-        }
-        
-        iceServersRef.current = servers;
-        return servers;
-    }, []);
-    // --- END WEBRTC ICE SERVER CONFIGURATION ---
 
     const handleEndInterviewRef = useRef(null);
     const exampleCases = useMemo(() => (
@@ -259,91 +223,6 @@ const MockInterviewPage = () => {
             ? problem.examples
             : (Array.isArray(problem?.visibleTestCases) ? problem.visibleTestCases : [])
     ), [problem?.examples, problem?.visibleTestCases]);
-
-    const ensureLocalStream = React.useCallback(async () => {
-        if (mode !== 'peer') return null;
-
-        if (!window.isSecureContext) {
-            setHasCameraAccess(false);
-            toast.error("Camera/Mic needs HTTPS on mobile. Open the app using an https URL (not http://LAN-IP).", { id: 'secure-context-camera' });
-            return null;
-        }
-
-        if (!navigator.mediaDevices?.getUserMedia) {
-            setHasCameraAccess(false);
-            toast.error("This browser does not support camera access for WebRTC.");
-            return null;
-        }
-
-        const refStream = localVideoRef.current?.srcObject;
-        if (refStream) {
-            setHasCameraAccess(true);
-            return refStream;
-        }
-
-        if (window.localStream) {
-            if (localVideoRef.current) {
-                localVideoRef.current.srcObject = window.localStream;
-            }
-            setHasCameraAccess(true);
-            return window.localStream;
-        }
-
-        if (localStreamPromiseRef.current) {
-            return localStreamPromiseRef.current;
-        }
-
-        localStreamPromiseRef.current = navigator.mediaDevices
-            .getUserMedia({ video: true, audio: true })
-            .then((stream) => {
-                window.localStream = stream;
-                if (localVideoRef.current) {
-                    localVideoRef.current.srcObject = stream;
-                }
-                setHasCameraAccess(true);
-
-                // If React 18 StrictMode restarted this component, the old tracks in the peer connection
-                // are dead. We must replace them dynamically without renegotiating WebRTC.
-                if (peerConnection.current) {
-                    const senders = peerConnection.current.getSenders();
-                    stream.getTracks().forEach((track) => {
-                        const sender = senders.find((s) => s.track && s.track.kind === track.kind);
-                        if (sender) {
-                            sender.replaceTrack(track);
-                        } else {
-                            peerConnection.current.addTrack(track, stream);
-                        }
-                    });
-                }
-
-                return stream;
-            })
-            .catch((err) => {
-                console.error("Camera access denied:", err);
-                setHasCameraAccess(false);
-                if (err?.name === 'NotReadableError') {
-                    toast.error("Camera is busy or blocked in another tab/window. Close other camera uses and retry.");
-                } else {
-                    toast.error("Camera/Microphone access denied. You can still join, but your video may be off.");
-                }
-                return null;
-            })
-            .finally(() => {
-                localStreamPromiseRef.current = null;
-            });
-
-        return localStreamPromiseRef.current;
-    }, [mode]);
-
-    const attachLocalTracksToPeer = React.useCallback((pc, stream) => {
-        if (!pc || !stream) return;
-        stream.getTracks().forEach((track) => {
-            const exists = pc.getSenders().some((sender) => sender.track && sender.track.id === track.id);
-            if (!exists) {
-                pc.addTrack(track, stream);
-            }
-        });
-    }, []);
 
     // ── Fetch problem ─────────────────────────────────────────────
     useEffect(() => {
@@ -437,178 +316,114 @@ const MockInterviewPage = () => {
 
     const cvInsights = useMemo(() => extractCvInsights(), [cvFileName]);
 
-    // ── WebRTC Setup for Peer Mode ────────────────────────────────
+    // ── Agora RTC Setup for Peer Mode ─────────────────────────────
     useEffect(() => {
         if (mode !== 'peer') return;
 
-        let isMounted = true;
-        if (isMounted) {
-            ensureLocalStream();
-        }
+        const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+        agoraClientRef.current = client;
 
-        return () => {
-            isMounted = false;
-            // Clean up the ref's srcObject
-            if (localVideoRef.current && localVideoRef.current.srcObject) {
-                const tracks = localVideoRef.current.srcObject.getTracks();
-                tracks.forEach(track => track.stop());
-                localVideoRef.current.srcObject = null;
-            }
-            // Clean up the global stream to actually release the camera access
-            if (window.localStream) {
-                const globalTracks = window.localStream.getTracks();
-                globalTracks.forEach(track => track.stop());
-                window.localStream = null;
-            }
-            localStreamPromiseRef.current = null;
-        };
-    }, [mode, ensureLocalStream]);
-
-    const createPeerConnection = async (newSocket, targetSocketId) => {
-        peerTargetSocketIdRef.current = targetSocketId;
-
-        if (peerConnection.current && peerConnection.current.signalingState !== 'closed') {
-            return peerConnection.current;
-        }
-
-        const iceServers = await getIceServers();
-        console.log('[WebRTC] Creating PeerConnection with ICE servers:', iceServers.length, 'servers');
-        const pc = new RTCPeerConnection({
-            iceServers: iceServers,
-            iceCandidatePoolSize: 10
+        client.on('connection-state-change', (curState) => {
+            console.log('[Agora] Connection state:', curState);
+            setAgoraConnectionState(curState);
         });
 
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                newSocket.emit('webrtc_ice_candidate', { roomId, candidate: event.candidate, target: peerTargetSocketIdRef.current });
+        client.on('user-published', async (user, mediaType) => {
+            await client.subscribe(user, mediaType);
+            console.log('[Agora] Subscribed to user:', user.uid, mediaType);
+            if (mediaType === 'video') {
+                setAgoraRemoteUsers(prev => {
+                    const filtered = prev.filter(u => u.uid !== user.uid);
+                    return [...filtered, user];
+                });
             }
-        };
+            if (mediaType === 'audio') {
+                user.audioTrack?.play();
+            }
+        });
 
-        pc.oniceconnectionstatechange = async () => {
-            console.log('[WebRTC] ICE connection state:', pc.iceConnectionState);
-            setIceConnectionState(pc.iceConnectionState || 'unknown');
-            if (pc.iceConnectionState !== 'failed') return;
-            if (!newSocket?.connected || !peerTargetSocketIdRef.current) return;
-            if (pc.signalingState !== 'stable') return;
+        client.on('user-unpublished', (user, mediaType) => {
+            if (mediaType === 'video') {
+                setAgoraRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
+            }
+        });
+
+        client.on('user-left', (user) => {
+            console.log('[Agora] User left:', user.uid);
+            setAgoraRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
+        });
+
+        return () => {
+            // Cleanup Agora on unmount
+            localAudioTrackRef.current?.close();
+            localVideoTrackRef.current?.close();
+            localAudioTrackRef.current = null;
+            localVideoTrackRef.current = null;
+            client.leave().catch(() => {});
+            agoraClientRef.current = null;
+        };
+    }, [mode]);
+
+    // Join Agora channel once the socket room is joined
+    useEffect(() => {
+        if (mode !== 'peer' || !peerRoomJoined || !agoraClientRef.current) return;
+        // Avoid double join
+        if (agoraClientRef.current.connectionState === 'CONNECTED' || agoraClientRef.current.connectionState === 'CONNECTING') return;
+
+        const joinAgora = async () => {
+            const appId = import.meta.env.VITE_AGORA_APP_ID;
+            if (!appId) {
+                toast.error('Agora App ID is not configured.');
+                return;
+            }
+
+            // Fetch token from backend
+            let agoraToken = null;
+            try {
+                const tokenRes = await axiosClient.post('/agora/token', { channelName: roomId });
+                if (tokenRes.data?.success) {
+                    agoraToken = tokenRes.data.token;
+                }
+            } catch (err) {
+                console.warn('[Agora] Token fetch failed, using null token (testing mode):', err.message);
+            }
+
+            await agoraClientRef.current.join(appId, roomId, agoraToken, null);
+            console.log('[Agora] Joined channel:', roomId);
 
             try {
-                if (typeof pc.restartIce === 'function') {
-                    pc.restartIce();
+                const [audioTrack, videoTrack] = await Promise.all([
+                    AgoraRTC.createMicrophoneAudioTrack(),
+                    AgoraRTC.createCameraVideoTrack(),
+                ]);
+
+                localAudioTrackRef.current = audioTrack;
+                localVideoTrackRef.current = videoTrack;
+
+                // Play local video in the local container
+                if (localVideoRef.current) {
+                    videoTrack.play(localVideoRef.current);
                 }
-                const restartOffer = await pc.createOffer({ iceRestart: true });
-                await pc.setLocalDescription(restartOffer);
-                newSocket.emit('webrtc_offer', { roomId, offer: restartOffer, target: peerTargetSocketIdRef.current });
-            } catch (err) {
-                console.error('ICE restart failed', err);
+
+                await agoraClientRef.current.publish([audioTrack, videoTrack]);
+                setHasCameraAccess(true);
+                console.log('[Agora] Published local tracks');
+            } catch (mediaErr) {
+                console.error('[Agora] Media error:', mediaErr);
+                setHasCameraAccess(false);
+                if (mediaErr?.code === 'PERMISSION_DENIED' || mediaErr?.name === 'NotAllowedError') {
+                    toast.error('Camera/Microphone access denied. You can still join, but your video will be off.');
+                } else {
+                    toast.error('Failed to access camera: ' + mediaErr.message);
+                }
             }
         };
 
-        pc.ontrack = (event) => {
-            console.log('[WebRTC] ontrack fired — kind:', event.track?.kind, 'streams:', event.streams?.length);
-            if (!remoteVideoRef.current) return;
-
-            // Handle the stream
-            if (event.streams && event.streams[0]) {
-                remoteStreamRef.current = event.streams[0];
-            } else if (event.track) {
-                if (!remoteStreamRef.current) {
-                    remoteStreamRef.current = new MediaStream();
-                }
-                const alreadyAdded = remoteStreamRef.current.getTracks().some((t) => t.id === event.track.id);
-                if (!alreadyAdded) {
-                    remoteStreamRef.current.addTrack(event.track);
-                }
-            }
-
-            // Always assign standard react streams
-            if (remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
-                remoteVideoRef.current.srcObject = remoteStreamRef.current;
-            }
-            setHasRemoteStream(true);
-
-            const playPromise = remoteVideoRef.current.play?.();
-            if (playPromise && typeof playPromise.catch === 'function') {
-                playPromise
-                    .then(() => setRemoteAudioBlocked(false))
-                    .catch(() => {
-                        setRemoteAudioBlocked(true);
-                    });
-            }
-        };
-
-        if (localVideoRef.current && localVideoRef.current.srcObject) {
-            attachLocalTracksToPeer(pc, localVideoRef.current.srcObject);
-        } else if (window.localStream) {
-            // Fallback if ref isn't attached but stream exists
-            attachLocalTracksToPeer(pc, window.localStream);
-        }
-
-        peerConnection.current = pc;
-        return pc;
-    };
-
-    const flushPendingIceCandidates = useCallback(async () => {
-        const pc = peerConnection.current;
-        if (!pc || !pc.remoteDescription) return;
-
-        const queued = pendingIceCandidatesRef.current;
-        pendingIceCandidatesRef.current = [];
-
-        for (const candidate of queued) {
-            try {
-                await pc.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (err) {
-                console.error('Failed to apply queued ICE candidate', err);
-            }
-        }
-    }, []);
-
-    const initiateWebRTC = async (newSocket, targetSocketId) => {
-        if (peerConnection.current && (peerConnection.current.connectionState === 'connected' || peerConnection.current.connectionState === 'connecting')) {
-            return;
-        }
-        await ensureLocalStream();
-        const pc = await createPeerConnection(newSocket, targetSocketId);
-        console.log('[WebRTC] Initiating offer to', targetSocketId);
-        try {
-            makingOfferRef.current = true;
-            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-            await pc.setLocalDescription(offer);
-            newSocket.emit('webrtc_offer', { roomId, offer, target: targetSocketId });
-            await flushPendingIceCandidates();
-        } catch (err) {
-            console.error('Error initiating WebRTC offer:', err);
-        } finally {
-            makingOfferRef.current = false;
-        }
-    };
-
-    const handleReceiveOffer = async (newSocket, offer, fromSocketId) => {
-        await ensureLocalStream();
-        const pc = await createPeerConnection(newSocket, fromSocketId);
-
-        // Collision-safe negotiation: one peer politely accepts rollback on glare.
-        const polite = String(newSocket.id) > String(fromSocketId);
-        const offerCollision = makingOfferRef.current || pc.signalingState !== 'stable';
-
-        if (offerCollision && !polite) {
-            return;
-        }
-
-        if (offerCollision) {
-            await Promise.all([
-                pc.setLocalDescription({ type: 'rollback' }),
-                pc.setRemoteDescription(new RTCSessionDescription(offer))
-            ]);
-        } else {
-            await pc.setRemoteDescription(new RTCSessionDescription(offer));
-        }
-
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        newSocket.emit('webrtc_answer', { roomId, answer, target: fromSocketId });
-        await flushPendingIceCandidates();
-    };
+        joinAgora().catch(err => {
+            console.error('[Agora] Join error:', err);
+            toast.error('Failed to connect video: ' + err.message);
+        });
+    }, [mode, peerRoomJoined, roomId]);
 
     // ── Socket initialization ─────────────────────────────────────
     const joinInterviewRoom = (activeSocket) => {
@@ -646,19 +461,6 @@ const MockInterviewPage = () => {
                 setUsers(roomUsers);
                 setPeerJoinError('');
                 setPeerRoomJoined(true);
-
-                if (mode === 'peer') {
-                    const peers = roomUsers.filter((u) => !u?.isAI && u?.socketId && u.socketId !== activeSocket.id);
-                    if (peers.length > 0) {
-                        setTimeout(() => {
-                            const targetPeer = peers[0];
-                            const shouldInitiate = String(activeSocket.id) < String(targetPeer.socketId);
-                            if (shouldInitiate && !peerConnection.current && activeSocket.connected && !hasRemoteStream) {
-                                initiateWebRTC(activeSocket, targetPeer.socketId);
-                            }
-                        }, 1500);
-                    }
-                }
 
                 if (mode === 'ai' && aiResponses.length === 0) {
                     setAiResponses([
@@ -742,64 +544,14 @@ const MockInterviewPage = () => {
                  const filtered = prev.filter((u) => u.socketId !== newUser.socketId);
                  return [...filtered, newUser];
              });
-             
-             if (mode === 'peer' && newUser?.socketId) {
-                 const shouldInitiate = String(newSocket.id) < String(newUser.socketId);
-                 console.log('[WebRTC] user_joined triggered. shouldInitiate:', shouldInitiate);
-                 if (!shouldInitiate || peerConnection.current) {
-                     return;
-                 }
-                 initiateWebRTC(newSocket, newUser.socketId);
-             }
         });
 
         newSocket.on('user_left', ({ socketId }) => {
              setUsers(prev => {
                  return prev.filter(u => u.socketId !== socketId);
              });
-             if (mode === 'peer' && peerConnection.current) {
-                 peerConnection.current.close();
-                 peerConnection.current = null;
-                 if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-                 if (remoteStreamRef.current) {
-                    remoteStreamRef.current.getTracks().forEach((t) => t.stop());
-                    remoteStreamRef.current = null;
-                 }
-                 setHasRemoteStream(false);
-                 setRemoteAudioBlocked(false);
+             if (mode === 'peer') {
                  toast.success("Peer has left the call.");
-             }
-        });
-
-        newSocket.on('webrtc_offer', async ({ offer, from }) => {
-             console.log('[WebRTC] Received offer from:', from);
-             if (mode !== 'peer') return;
-             await handleReceiveOffer(newSocket, offer, from);
-        });
-
-        newSocket.on('webrtc_answer', async ({ answer }) => {
-             if (mode !== 'peer') return;
-             if (peerConnection.current) {
-                 await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
-                 await flushPendingIceCandidates();
-             }
-        });
-
-        newSocket.on('webrtc_ice_candidate', async ({ candidate }) => {
-             if (mode !== 'peer') return;
-             if (peerConnection.current) {
-                 try {
-                     if (!peerConnection.current.remoteDescription) {
-                         pendingIceCandidatesRef.current.push(candidate);
-                         return;
-                     }
-                     await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-                 } catch (e) {
-                     console.error('Error adding received ice candidate', e);
-                 }
-             } else {
-                 // peerConnection might not be instantiated yet (e.g. waiting for camera permission)
-                 pendingIceCandidatesRef.current.push(candidate);
              }
         });
 
@@ -842,10 +594,9 @@ const MockInterviewPage = () => {
         setSocket(newSocket);
         
         return () => {
-             pendingIceCandidatesRef.current = [];
              newSocket.disconnect();
         };
-    }, [roomId, mode, user?.token, flushPendingIceCandidates]);
+    }, [roomId, mode, user?.token]);
 
     // Join peer rooms once socket is connected (camera may be unavailable and should not block joining).
     useEffect(() => {
@@ -959,28 +710,26 @@ const MockInterviewPage = () => {
         processAiInput(chatInput, { clearInput: true });
     };
 
-    const handleEnableRemoteAudio = () => {
-        if (!remoteVideoRef.current) return;
-        remoteVideoRef.current.muted = false;
-        remoteVideoRef.current.play?.()
-            .then(() => setRemoteAudioBlocked(false))
-            .catch(() => setRemoteAudioBlocked(true));
-    };
-
     const handleRetryCamera = async () => {
-        const stream = await ensureLocalStream();
-        if (!stream) return;
-        if (peerConnection.current) {
-            attachLocalTracksToPeer(peerConnection.current, stream);
-            if (socket && peerTargetSocketIdRef.current && peerConnection.current.signalingState === 'stable') {
-                try {
-                    const offer = await peerConnection.current.createOffer();
-                    await peerConnection.current.setLocalDescription(offer);
-                    socket.emit('webrtc_offer', { roomId, offer, target: peerTargetSocketIdRef.current });
-                } catch (err) {
-                    console.error('Failed to renegotiate after camera retry', err);
-                }
+        if (!agoraClientRef.current) return;
+        try {
+            const [audioTrack, videoTrack] = await Promise.all([
+                AgoraRTC.createMicrophoneAudioTrack(),
+                AgoraRTC.createCameraVideoTrack(),
+            ]);
+            localAudioTrackRef.current?.close();
+            localVideoTrackRef.current?.close();
+            localAudioTrackRef.current = audioTrack;
+            localVideoTrackRef.current = videoTrack;
+            if (localVideoRef.current) {
+                videoTrack.play(localVideoRef.current);
             }
+            await agoraClientRef.current.publish([audioTrack, videoTrack]);
+            setHasCameraAccess(true);
+            toast.success('Camera enabled!');
+        } catch (err) {
+            console.error('[Agora] Retry camera error:', err);
+            toast.error('Failed to enable camera: ' + err.message);
         }
     };
 
@@ -1123,6 +872,10 @@ const MockInterviewPage = () => {
                     setShowReportModal(true);
                     toast.success('Report generated successfully!', { id: toastId });
                     if (socket) socket.disconnect();
+                    // Also leave Agora channel
+                    localAudioTrackRef.current?.close();
+                    localVideoTrackRef.current?.close();
+                    agoraClientRef.current?.leave().catch(() => {});
                 } else {
                     throw new Error("Failed to generate report from server.");
                 }
@@ -1160,6 +913,10 @@ const MockInterviewPage = () => {
             }
             socket.disconnect();
         }
+        // Also leave Agora channel
+        localAudioTrackRef.current?.close();
+        localVideoTrackRef.current?.close();
+        agoraClientRef.current?.leave().catch(() => {});
         navigate('/');
     }, [socket, navigate, mode, roomId]);
 
@@ -1674,36 +1431,35 @@ const MockInterviewPage = () => {
                                      </>
                                 ) : (
                                      <>
-                                        {/* ICE State Debugger */}
+                                        {/* Agora Connection State */}
                                         <div className="absolute top-4 left-4 z-50 rounded-md bg-black/60 px-2 py-1 text-[10px] items-center gap-2 font-mono text-slate-300 backdrop-blur-sm border border-white/10 flex">
-                                            <span>ICE:</span>
-                                            <span className={iceConnectionState === 'connected' || iceConnectionState === 'completed' ? 'text-emerald-400' : 'text-amber-400 font-bold'}>{iceConnectionState}</span>
+                                            <span>Agora:</span>
+                                            <span className={agoraConnectionState === 'CONNECTED' ? 'text-emerald-400' : 'text-amber-400 font-bold'}>{agoraConnectionState}</span>
                                         </div>
-                                        {/* Remote Video (Peer) */}
-                                        <video 
-                                            ref={remoteVideoRef} 
-                                            autoPlay 
-                                            playsInline 
-                                            onClick={handleEnableRemoteAudio}
-                                            className="w-full h-full object-cover bg-black"
-                                        />
-                                        {remoteAudioBlocked && (
-                                            <button
-                                                type="button"
-                                                onClick={handleEnableRemoteAudio}
-                                                className="absolute top-20 right-4 z-20 rounded-md border border-amber-400/40 bg-amber-500/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-200"
-                                            >
-                                                Tap To Enable Audio
-                                            </button>
+                                        {/* Remote Video (Peer) — rendered by Agora */}
+                                        {agoraRemoteUsers.length > 0 ? (
+                                            agoraRemoteUsers.map(remoteUser => (
+                                                <div
+                                                    key={remoteUser.uid}
+                                                    ref={el => {
+                                                        if (el && remoteUser.videoTrack) {
+                                                            remoteUser.videoTrack.play(el);
+                                                        }
+                                                    }}
+                                                    className="w-full h-full bg-black"
+                                                />
+                                            ))
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center flex-col gap-3 bg-gradient-to-b from-indigo-900/20 to-black/60">
+                                                <span className="material-symbols-outlined text-5xl text-slate-500 animate-pulse">person_search</span>
+                                                <span className="text-sm text-slate-400 font-medium">Waiting for peer to join...</span>
+                                            </div>
                                         )}
-                                        {/* Local Video Placeholder */}
+                                        {/* Local Video — rendered by Agora into a div */}
                                         <div className="absolute bottom-4 right-4 w-32 h-40 bg-black/60 rounded-xl border border-white/20 overflow-hidden shadow-2xl backdrop-blur-md z-20">
-                                            <video 
-                                                ref={localVideoRef} 
-                                                autoPlay 
-                                                playsInline 
-                                                muted 
-                                                className="w-full h-full object-cover"
+                                            <div
+                                                ref={localVideoRef}
+                                                className="w-full h-full"
                                             />
                                             {!hasCameraAccess && (
                                                 <div className="absolute inset-0 flex items-center justify-center flex-col gap-2">
