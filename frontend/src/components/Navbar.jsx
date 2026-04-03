@@ -53,7 +53,7 @@ const Navbar = () => {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6">
-            {['Explore', 'Mock-Interview-Setup', 'Discussions', 'Plans'].map((path) => (
+            {['Explore', 'Mock-Interview-Setup', 'Discussions', 'Plans', 'Contact'].map((path) => (
               <NavLink
                 key={path}
                 to={`/${path.toLowerCase()}`}
@@ -61,7 +61,7 @@ const Navbar = () => {
                   `text-sm font-medium transition-all ${isActive ? 'text-indigo-300' : 'text-slate-300 hover:text-white'}`
                 }
               >
-                {path.replace('-', ' ')}
+                {path.replace(/-/g, ' ')}
               </NavLink>
             ))}
           </nav>
@@ -140,6 +140,7 @@ const Navbar = () => {
               <MobileNavLink to="/mock-interview-setup" icon="smart_toy" label="Interview" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/discussions" icon="forum" label="Discuss" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/plans" icon="workspace_premium" label="Upgrade" onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavLink to="/contact" icon="mail" label="Contact Us" onClick={() => setMobileMenuOpen(false)} />
               
               <div className="h-px bg-white/5 my-4 mx-2" />
               

@@ -20,6 +20,7 @@ const DiscussionsPage = lazy(() => import('./pages/DiscussionsPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const ContactUsPage = lazy(() => import('./pages/ContactUsPage'))
 
 const RouteLoader = () => (
   <div className='flex items-center justify-center h-screen w-full'>
@@ -85,6 +86,7 @@ const App = () => {
         <Route path="/plans" element={requireAuth(<Plans />)} />
         <Route path="/discussions" element={requireAuth(<DiscussionsPage />)} />
         <Route path="/settings" element={requireAuth(<SettingsPage />)} />
+        <Route path="/contact" element={renderLazy(<ContactUsPage />)} />
         <Route path="/forgot-password" element={!isAuthenticated ? renderLazy(<ForgotPasswordPage />) : <Navigate to="/" />} />
         <Route path="/reset-password/:token" element={!isAuthenticated ? renderLazy(<ResetPasswordPage />) : <Navigate to="/" />} />
       </Routes>

@@ -16,6 +16,7 @@ const paymentRouter = require('./routes/paymentRouter');
 const planRouter = require('./routes/planRoutes');
 const interviewRouter = require('./routes/interviewRoutes');
 const agoraRouter = require('./routes/agoraRoutes');
+const contactRouter = require('./routes/contactRoutes');
 
 const app = express();
 app.disable('x-powered-by');
@@ -119,6 +120,7 @@ app.use("/plan", planRouter);
 app.use("/discussion", require('./routes/discussionRoutes'));
 app.use("/interview", interviewRouter);
 app.use("/agora", agoraRouter);
+app.use("/contact", contactRouter);
 
 app.get('/', (req, res) => {
     res.status(200).json({ status: 'alive', message: 'CodePrep API is running!' });
