@@ -1,4 +1,5 @@
 import axios from "axios";
+import { transformProfessionalApiError } from './professionalAlerts';
 
 const devApiPort = import.meta.env.VITE_API_PORT || "5000";
 const isLoopbackHost = (host) => host === "localhost" || host === "127.0.0.1";
@@ -54,6 +55,8 @@ axiosClient.interceptors.request.use((config) => {
 axiosClient.interceptors.response.use(
     (response) => response,
     async (error) => {
+        transformProfessionalApiError(error);
+
         // Handle 401 Unauthorized (e.g. JWT expired)
         if (error.response?.status === 401) {
             const msg = error.response.data?.message;

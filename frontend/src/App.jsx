@@ -2,6 +2,7 @@ import React, { useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { checkAuthStatus} from "./app/features/auth/authSlice.js"
+import { PROFESSIONAL_ALERT_EVENT } from './utils/professionalAlerts'
 
 const Home = lazy(() => import('./pages/Home'))
 const Login = lazy(() => import('./pages/Login'))
@@ -28,14 +29,65 @@ const RouteLoader = () => (
   </div>
 )
 
+const ProfessionalAlertModal = ({ open, title, message, onClose }) => {
+  if (!open) return null
+
+  return (
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/55 backdrop-blur-[2px] p-4'>
+      <div className='w-full max-w-md rounded-2xl border border-white/20 bg-[#0b1220] p-6 shadow-2xl'>
+        <div className='flex items-start gap-3'>
+          <div className='mt-0.5 h-9 w-9 shrink-0 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center'>
+            <span className='material-symbols-outlined text-[18px]'>info</span>
+          </div>
+          <div>
+            <h3 className='text-white text-lg font-semibold'>{title}</h3>
+            <p className='text-slate-300 text-sm mt-2 leading-relaxed'>{message}</p>
+          </div>
+        </div>
+
+        <div className='mt-6 flex justify-end'>
+          <button
+            type='button'
+            onClick={onClose}
+            className='rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400 transition-colors'
+          >
+            Okay
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const App = () => {
   const dispatch = useDispatch()
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth)
   const location = useLocation()
+  const [professionalAlert, setProfessionalAlert] = React.useState({
+    open: false,
+    title: '',
+    message: ''
+  })
 
   useEffect(() => {
     dispatch(checkAuthStatus())
   }, [dispatch])
+
+  useEffect(() => {
+    const onProfessionalAlert = (event) => {
+      const detail = event?.detail || {}
+      setProfessionalAlert({
+        open: true,
+        title: detail.title || 'Heads Up',
+        message: detail.message || 'Please try again shortly.'
+      })
+    }
+
+    window.addEventListener(PROFESSIONAL_ALERT_EVENT, onProfessionalAlert)
+    return () => {
+      window.removeEventListener(PROFESSIONAL_ALERT_EVENT, onProfessionalAlert)
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -91,6 +143,12 @@ const App = () => {
         <Route path="/reset-password/:token" element={!isAuthenticated ? renderLazy(<ResetPasswordPage />) : <Navigate to="/" />} />
       </Routes>
       {isAuthenticated && !isCompilerPage && renderLazy(<FloatingChatbot />)}
+      <ProfessionalAlertModal
+        open={professionalAlert.open}
+        title={professionalAlert.title}
+        message={professionalAlert.message}
+        onClose={() => setProfessionalAlert({ open: false, title: '', message: '' })}
+      />
     </>
   )
 }

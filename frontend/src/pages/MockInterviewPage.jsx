@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import io from 'socket.io-client';
 import ReactMarkdown from 'react-markdown';
 import AgoraRTC from 'agora-rtc-sdk-ng';
+import { showInsufficientTokensToast, isTokenIssueMessage, getSafeTokenBalance } from '../utils/professionalAlerts';
 
 const Whiteboard = ({ roomId, socket }) => {
     const canvasRef = useRef(null);
@@ -570,7 +571,11 @@ const MockInterviewPage = () => {
         });
 
         newSocket.on('ai_error', ({ message }) => {
-             toast.error(message);
+             if (isTokenIssueMessage(message)) {
+                 showInsufficientTokensToast({ balance: user?.tokens, required: 5 });
+             } else {
+                 toast.error(message);
+             }
          });
 
         newSocket.on('peer_chat_message', (payload) => {
@@ -596,7 +601,7 @@ const MockInterviewPage = () => {
         return () => {
              newSocket.disconnect();
         };
-    }, [roomId, mode, user?.token]);
+    }, [roomId, mode, user?.token, user?.tokens]);
 
     // Join peer rooms once socket is connected (camera may be unavailable and should not block joining).
     useEffect(() => {
@@ -673,6 +678,13 @@ const MockInterviewPage = () => {
         const text = String(rawText || '').trim();
         const { clearInput = false } = options;
         if (!text) return;
+
+        const tokenCost = 5;
+        const availableTokens = getSafeTokenBalance(user?.tokens);
+        if (availableTokens < tokenCost) {
+            showInsufficientTokensToast({ balance: availableTokens, required: tokenCost });
+            return;
+        }
 
         setAiResponses(prev => [...prev, `You: ${text}`]);
         if (clearInput) {

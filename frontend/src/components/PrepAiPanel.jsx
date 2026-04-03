@@ -3,6 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import axiosClient from '../utils/axiosClient';
 import { toast } from 'react-hot-toast';
+import { useSelector } from 'react-redux';
+import { showInsufficientTokensToast, getSafeTokenBalance } from '../utils/professionalAlerts';
 
 const quickPrompts = [
     'Give me a brute-force approach first.',
@@ -12,6 +14,7 @@ const quickPrompts = [
 ];
 
 const PrepAiPanel = ({ problem, code, language, selectedTestCase, runCaseResults, onClose }) => {
+    const { user } = useSelector((state) => state.auth);
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [messages, setMessages] = useState([
@@ -52,6 +55,13 @@ const PrepAiPanel = ({ problem, code, language, selectedTestCase, runCaseResults
     const sendMessage = async (text) => {
         const userText = String(text || '').trim();
         if (!userText) return;
+
+        const tokenCost = 5;
+        const availableTokens = getSafeTokenBalance(user?.tokens);
+        if (availableTokens < tokenCost) {
+            showInsufficientTokensToast({ balance: availableTokens, required: tokenCost });
+            return;
+        }
 
         setMessages((prev) => [...prev, { role: 'user', text: userText }]);
         setInput('');

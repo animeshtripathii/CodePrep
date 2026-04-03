@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { updateUserTokens } from '../app/features/auth/authSlice';
+import { showInsufficientTokensToast, isTokenIssueMessage } from '../utils/professionalAlerts';
 
 const DiscussionsPage = () => {
     const { user } = useSelector(state => state.auth);
@@ -160,7 +161,7 @@ const DiscussionsPage = () => {
 
         const tokenCost = askAI ? 5 : 0;
         if (tokenCost > 0 && user?.tokens < tokenCost) {
-            toast.error(`Insufficient tokens. You need ${tokenCost} tokens to send this message.`);
+            showInsufficientTokensToast({ balance: user?.tokens, required: tokenCost });
             return;
         }
 
@@ -168,7 +169,11 @@ const DiscussionsPage = () => {
 
         socket.emit("sendMessage", { roomId, content }, (response) => {
             if (response.error) {
-                toast.error(response.error);
+                if (isTokenIssueMessage(response.error)) {
+                    showInsufficientTokensToast({ balance: user?.tokens, required: tokenCost || 5 });
+                } else {
+                    toast.error(response.error);
+                }
             } else if (response.success) {
                 setMessageInput('');
                 if (response.tokensRemaining !== undefined) {
