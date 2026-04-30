@@ -65,7 +65,7 @@ CodePrep is a modern, full-stack interview preparation platform designed to help
 
 ## 🏗 Infrastructure Architecture
 
-- **Execution Engine Hosting:** Judge0 is self-hosted on an **Azure Virtual Machine** instead of relying only on third-party hosted endpoints.
+- **Execution Engine Hosting:** Judge0 is self-hosted on an **AWs EC2 machine** instead of relying only on third-party hosted endpoints.
 - **Containerization:** The Judge0 stack is deployed using **Docker**, which keeps worker/runtime dependencies isolated and reproducible across environments.
 - **Service Integration:** The Node.js backend communicates with the VM-hosted Judge0 service over HTTP, while application state and business data continue to live in MongoDB/Redis.
 
