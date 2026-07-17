@@ -10,17 +10,19 @@ const PORT = process.env.PORT || 10000;
 async function startServer() {
   try {
     await connectDB();
+
     if (!redisClient.isOpen) await redisClient.connect();
+    console.log('Redis connected successfully');
 
     const httpServer = http.createServer(app);
-    initSocketServer(httpServer); 
+    initSocketServer(httpServer);
 
     httpServer.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (err) {
-    console.error("Startup error:", err);
+    console.error("Startup error:", err.message);
     process.exit(1);
   }
 }
-startServer();
+startServer();
