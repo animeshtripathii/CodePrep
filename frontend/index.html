@@ -5,81 +5,33 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="initial-scale=1, width=device-width" />
 
-    <!-- ─── DNS + Connection hints ──────────────────────────────────────────
-         dns-prefetch  : broadest compat (IE11+), resolves DNS ahead of time
-         preconnect    : modern browsers, also opens TCP + TLS
-    ──────────────────────────────────────────────────────────────────────── -->
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <!-- Preconnect to reduce DNS + TLS handshake latency for Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- ─── Critical above-the-fold CSS (inlined) ──────────────────────────
-         These styles cover the initial shell that is visible before any JS
-         runs. Inlining them removes the network dependency on index-*.css
-         for the very first paint, directly improving FCP.
-    ──────────────────────────────────────────────────────────────────────── -->
-    <style>
-      /* System font stack as a render-safe fallback while web fonts load */
-      :root {
-        --font-fallback: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      }
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      html { font-family: var(--font-fallback); }
-      body {
-        background-color: #050914;
-        color: #e2e8f0;
-        min-height: 100vh;
-        overflow-x: hidden;
-        /* Minimal gradient so above-the-fold background is correct immediately */
-        background-image:
-          radial-gradient(circle at 15% 50%, rgba(19,91,236,.08) 0%, transparent 50%),
-          radial-gradient(circle at 85% 30%, rgba(16,185,129,.05) 0%, transparent 50%),
-          radial-gradient(circle at 50% 80%, rgba(139,92,246,.08) 0%, transparent 50%);
-        background-attachment: fixed;
-      }
-      /* Prevent layout shift while root mounts */
-      #root { min-height: 100vh; }
-    </style>
-
-    <!-- ─── Google Fonts — async (non-render-blocking) ──────────────────────
-         The media="print" trick loads stylesheets without blocking render:
-         1. Browser fetches them at low priority (print stylesheet).
-         2. onload switches media to "all", applying the fonts.
-         3. <noscript> fallback for JS-disabled browsers.
-
-         All families consolidated into ONE request (was 6 separate ones).
-    ──────────────────────────────────────────────────────────────────────── -->
+    <!--
+      Consolidated from 6 separate requests into 1 combined URL.
+      Eliminates 5 render-blocking network round trips.
+      Material Icons / Symbols are loaded via a separate request as they use
+      a different Google Fonts API endpoint that cannot be combined.
+    -->
     <link
-      rel="stylesheet"
-      media="print"
-      onload="this.media='all'"
       href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
-    />
-    <!-- Material Icons uses a different endpoint — kept as a separate request -->
-    <link
       rel="stylesheet"
-      media="print"
-      onload="this.media='all'"
-      href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Round"
     />
-    <!-- Fallback for no-JS browsers -->
-    <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" />
-      <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Round" />
-    </noscript>
+    <!-- Material Icons (icon font — separate endpoint, cannot be merged above) -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Round" rel="stylesheet" />
 
     <title>CodePrep</title>
   </head>
   <body>
     <div id="root"></div>
     <!--
-      Razorpay is NOT loaded here.
-      Payment is currently a "Coming soon" stub in Plans.jsx.
-      When re-enabled, use loadRazorpay() from utils/loadRazorpay.js
-      to load it on-demand only when a user clicks "Subscribe".
+      Razorpay is NOT loaded here anymore.
+      Payment is currently disabled ("Coming soon" stub in Plans.jsx).
+      When payment is re-enabled, load this script on-demand inside
+      handleSubscribe() using the loadRazorpay() utility (see utils/loadRazorpay.js).
     -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
-
