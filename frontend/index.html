@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="initial-scale=1, width=device-width" />
+
+    <!-- Preconnect to reduce DNS + TLS handshake latency for Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!--
+      Consolidated from 6 separate requests into 1 combined URL.
+      Eliminates 5 render-blocking network round trips.
+      Material Icons / Symbols are loaded via a separate request as they use
+      a different Google Fonts API endpoint that cannot be combined.
+    -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Material Icons (icon font — separate endpoint, cannot be merged above) -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Round" rel="stylesheet" />
+
+    <title>CodePrep</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!--
+      Razorpay is NOT loaded here anymore.
+      Payment is currently disabled ("Coming soon" stub in Plans.jsx).
+      When payment is re-enabled, load this script on-demand inside
+      handleSubscribe() using the loadRazorpay() utility (see utils/loadRazorpay.js).
+    -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

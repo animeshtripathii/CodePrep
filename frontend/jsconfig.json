@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "forceConsistentCasingInFileNames": true,
+        "moduleResolution": "node",
+        "jsx": "preserve",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ]
+}
