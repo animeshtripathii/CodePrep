@@ -174,6 +174,7 @@ You have access to tools that can fetch live user statistics and recent submissi
     }
 };
 
+<<<<<<< HEAD
 /**
  * 3. AI Interviewer Model (Mock Interview Assistant)
  */
@@ -236,3 +237,6 @@ AI Interviewer Response (Make it conversational, direct, and under 3-4 sentences
 };
 
 module.exports = { codingChat, websiteChat, interviewChat };
+=======
+module.exports = { codingChat, websiteChat };
+>>>>>>> 4c7510c4037886edc05d8b2d5844dc36ed14d532

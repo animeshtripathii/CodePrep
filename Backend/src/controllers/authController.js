@@ -138,8 +138,12 @@ const checkAuth = (req, res) => {
     _id: req.result._id,
     problemSolved: req.result.problemSolved,
     role: req.result.role,
+<<<<<<< HEAD
     tokens: req.result.tokens,
     token: req.cookies.token
+=======
+    tokens: req.result.tokens
+>>>>>>> 4c7510c4037886edc05d8b2d5844dc36ed14d532
   }
   res.json({ message: "You are authenticated", user: reply });
 };
