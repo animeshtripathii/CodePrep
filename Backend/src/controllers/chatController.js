@@ -31,7 +31,6 @@ const websiteChat = async (req, res) => {
     }
 }
 
-<<<<<<< HEAD
 const interviewChat = async (req, res) => {
     try {
         const message = req.body.message || req.body.text || req.body.prompt;
@@ -49,6 +48,3 @@ const interviewChat = async (req, res) => {
 }
 
 module.exports = { codingChat, websiteChat, interviewChat };
-=======
-module.exports = { codingChat, websiteChat };
->>>>>>> 4c7510c4037886edc05d8b2d5844dc36ed14d532

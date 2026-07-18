@@ -202,7 +202,6 @@ Focus only on programming and DSA topics.`
             }
         });
 
-<<<<<<< HEAD
         // ── PEER-TO-PEER INTERVIEW ROOM CHANNELS ──
         socket.on("join-room", ({ room, userName: pName }) => {
             socket.join(room);
@@ -244,10 +243,6 @@ Focus only on programming and DSA topics.`
             if (socket.peerRoom && socket.peerUserName) {
                 socket.to(socket.peerRoom).emit("user-left", { userName: socket.peerUserName });
             }
-=======
-        socket.on("disconnect", async () => {
-            console.log(`User disconnected from Chat: ${socket.user.username}`);
->>>>>>> 4c7510c4037886edc05d8b2d5844dc36ed14d532
             if (socket.currentRoom && socket.baseRoom) {
                 try {
                     // Decrement room stats logically
