@@ -1,9 +1,19 @@
 // Helper to map languages to Judge0 IDs
 const axios = require('axios');
+
+// Use the self-hosted Judge0 instance (JUDGE0_URL env var)
+// Falls back to localhost for local development
+const getJudge0BaseUrl = () => {
+    const url = process.env.JUDGE0_URL || 'http://localhost:2358';
+    // Strip trailing slash if present
+    return url.replace(/\/$/, '');
+};
+
 const getLanguageId = (lang) => {
     const languages = {
         "c": 50,
         "c++": 53,
+        "cpp": 53,
         "java": 62,
         "python": 71,
         "javascript": 63,
@@ -11,63 +21,70 @@ const getLanguageId = (lang) => {
     return languages[lang.toLowerCase()];
 };
 
-// 1. Submit Batch Function (Updated to WAIT for results)
+// Submit a batch of submissions to Judge0
+// Returns the array of submission tokens, or null on failure
 const submitBatch = async (submissions) => {
-    const options = {
-        method: 'POST',
-        // IMPORTANT: Added wait=true to get results immediately
-        url: 'https://judge029.p.rapidapi.com/submissions/batch?base64_encoded=false&wait=true',
-        headers: {
-            'x-rapidapi-key': process.env.JUDGE0_API, // Ensure this is set in .env
-            'x-rapidapi-host': 'judge029.p.rapidapi.com',
-            'Content-Type': 'application/json'
-        },
-        data: { submissions }
-    };
-
+    const baseUrl = getJudge0BaseUrl();
     try {
-        const response = await axios.request(options);
+        const response = await axios.post(
+            `${baseUrl}/submissions/batch?base64_encoded=false`,
+            { submissions },
+            {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 30000, // 30s timeout
+            }
+        );
         return response.data;
     } catch (error) {
-        console.error("Judge0 API Error:", error.response ? error.response.data : error.message);
+        console.error(
+            'Judge0 submitBatch error:',
+            error.response ? JSON.stringify(error.response.data) : error.message
+        );
         return null;
     }
 };
-
 
 const waiting = (timer) => {
     return new Promise((resolve) => setTimeout(resolve, timer));
 };
 
+// Poll Judge0 for results until all submissions are done (status.id > 2)
 const submitToken = async (resultTokens) => {
     if (!resultTokens || resultTokens.length === 0) {
         return [];
     }
 
-    const options = {
-        method: 'GET',
-        url: 'https://judge029.p.rapidapi.com/submissions/batch',
-        params: {
-            tokens: resultTokens.join(','),
-            base64_encoded: 'false',
-            fields: '*'
-        },
-        headers: {
-            'x-rapidapi-key': process.env.JUDGE0_API,
-            'x-rapidapi-host': 'judge029.p.rapidapi.com'
-        }
-    };
+    const baseUrl = getJudge0BaseUrl();
 
     async function fetchData() {
         try {
-            const response = await axios.request(options);
+            const response = await axios.get(
+                `${baseUrl}/submissions/batch`,
+                {
+                    params: {
+                        tokens: resultTokens.join(','),
+                        base64_encoded: 'false',
+                        fields: '*',
+                    },
+                    timeout: 30000,
+                }
+            );
             return response.data;
         } catch (error) {
+            console.error(
+                'Judge0 submitToken fetch error:',
+                error.response ? JSON.stringify(error.response.data) : error.message
+            );
             return null;
         }
     }
 
-    while (true) {
+    // Poll with a max of 30 attempts (~30 seconds) to avoid infinite loops on Render
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    while (attempts < maxAttempts) {
+        attempts++;
         const result = await fetchData();
 
         if (!result || !result.submissions) {
@@ -75,7 +92,9 @@ const submitToken = async (resultTokens) => {
             continue;
         }
 
-        const isResultObtained = result.submissions.every((submission) => submission.status.id > 2);
+        const isResultObtained = result.submissions.every(
+            (submission) => submission.status && submission.status.id > 2
+        );
 
         if (isResultObtained) {
             return result.submissions;
@@ -83,6 +102,8 @@ const submitToken = async (resultTokens) => {
 
         await waiting(1000);
     }
-}
+
+    throw new Error('Judge0 polling timed out after 30 seconds. The server may be overloaded.');
+};
 
 module.exports = { getLanguageId, submitBatch, submitToken };
