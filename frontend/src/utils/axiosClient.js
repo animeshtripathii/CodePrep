@@ -1,28 +1,14 @@
-import axios from "axios";
+// frontend/src/utils/axiosClient.js
+
+const axios = require('axios');
 
 const axiosClient = axios.create({
+    // Ensure this exactly matches your Render URL
     baseURL: import.meta.env.VITE_API_URL || "https://codeprep-1kzd.onrender.com",
-    withCredentials: true,
+    withCredentials: true, // This MUST be true for the JWT cookie to be stored
     headers: {
         "Content-Type": "application/json",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0"
     },
 });
 
-axiosClient.interceptors.request.use(config => {
-    if (config.method === 'get') {
-        config.params = {
-            ...config.params,
-            _t: new Date().getTime()
-        };
-    }
-    return config;
-});
-
-
-
-
-export default axiosClient;
-
+module.exports = axiosClient;
