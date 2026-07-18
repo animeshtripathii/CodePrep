@@ -258,6 +258,8 @@ const MockInterviewPage = () => {
   const recognitionRef = useRef(null);
   const aiMsgIdx = useRef(0);
   const silenceTimerRef = useRef(null);
+  // Always-current mirror of messages — safe to read inside async callbacks
+  const messagesRef = useRef([]);
 
   // Sync code starter on language selector update
   useEffect(() => {
@@ -267,7 +269,9 @@ const MockInterviewPage = () => {
   }, [language, selectedQ]);
 
   const addMessage = useCallback((role, text) => {
-    setMessages(prev => [...prev, { role, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    const entry = { role, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+    messagesRef.current = [...messagesRef.current, entry];
+    setMessages(messagesRef.current);
     setTimeout(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, 50);
   }, []);
 
@@ -389,18 +393,18 @@ const MockInterviewPage = () => {
       setListening(false);
       recognitionRef.current = null;
       // Auto-send whatever was captured — do NOT put it in the text box
-      if (transcriptBuffer.trim()) {
+      const captured = transcriptBuffer.trim();
+      transcriptBuffer = '';
+      if (captured) {
         toast.success('Voice captured — sending...', { id: 'mic-toast', duration: 1500 });
-        // Use functional state update pattern: directly call the API with the captured text
-        setMessages(prev => {
-          const text = transcriptBuffer.trim();
-          const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const updated = [...prev, { role: 'user', text, time }];
-          // Trigger AI response asynchronously after state settles
-          setTimeout(() => sendVoiceMessage(text), 0);
-          return updated;
-        });
-        transcriptBuffer = '';
+        // Add user message to state/ref first
+        const entry = { role: 'user', text: captured, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+        messagesRef.current = [...messagesRef.current, entry];
+        setMessages(messagesRef.current);
+        setTimeout(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, 50);
+        // Build history snapshot and call AI — messagesRef.current is already up to date
+        const historySnapshot = messagesRef.current.map(m => ({ role: m.role, text: m.text }));
+        callAI(captured, historySnapshot);
       }
     };
 
@@ -453,21 +457,15 @@ const MockInterviewPage = () => {
     }
   };
 
-  // Called after voice recognition automatically appends the user message
-  const sendVoiceMessage = async (text) => {
-    setMessages(prev => {
-      const history = prev.map(m => ({ role: m.role, text: m.text }));
-      callAI(text, history);
-      return prev; // no change to messages here, callAI → speakAI adds the AI reply
-    });
-  };
+
 
   const sendMessage = async () => {
     const text = userInput.trim();
     if (!text) return;
-    addMessage('user', text);
+    addMessage('user', text); // updates messagesRef.current synchronously
     setUserInput('');
-    const history = messages.map(m => ({ role: m.role, text: m.text }));
+    // Read from ref — always current, never stale
+    const history = messagesRef.current.map(m => ({ role: m.role, text: m.text }));
     await callAI(text, history);
   };
 
