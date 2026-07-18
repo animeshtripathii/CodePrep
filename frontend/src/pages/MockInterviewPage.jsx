@@ -257,6 +257,7 @@ const MockInterviewPage = () => {
   const chatRef = useRef(null);
   const recognitionRef = useRef(null);
   const aiMsgIdx = useRef(0);
+  const silenceTimerRef = useRef(null);
 
   // Sync code starter on language selector update
   useEffect(() => {
@@ -296,13 +297,48 @@ const MockInterviewPage = () => {
     return () => clearInterval(id);
   }, [timerRunning]);
 
+  // Clear the 10-second silence timeout
+  const clearSilenceTimer = () => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  };
+
+  // Reset the 10-second silence timer (restarts on every speech segment)
+  const resetSilenceTimer = (rec) => {
+    clearSilenceTimer();
+    silenceTimerRef.current = setTimeout(() => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setListening(false);
+      toast('Microphone stopped — no speech detected for 10 seconds.', { id: 'mic-toast', icon: '🎙️' });
+    }, 10000);
+  };
+
+  const stopListening = () => {
+    clearSilenceTimer();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setListening(false);
+  };
+
   // Voice recognition
   const startListening = () => {
+    // Toggle off if already listening
+    if (listening) {
+      stopListening();
+      return;
+    }
+
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       toast.error('Speech recognition not supported in this browser. Please use Chrome.');
       return;
     }
-    
+
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setAiSpeaking(false);
@@ -311,34 +347,61 @@ const MockInterviewPage = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const rec = new SR();
     recognitionRef.current = rec;
-    rec.continuous = false;
+    // continuous=true keeps mic open across natural pauses in speech
+    rec.continuous = true;
     rec.interimResults = false;
     rec.lang = 'en-US';
 
+    // Accumulate all result segments into one transcript buffer
+    let transcriptBuffer = '';
+
     rec.onstart = () => {
       setListening(true);
-      toast.success('Microphone active. Start speaking...', { id: 'mic-toast', duration: 3000 });
+      transcriptBuffer = '';
+      toast.success('Microphone active — speak now. Stops after 10s of silence.', { id: 'mic-toast', duration: 4000 });
+      resetSilenceTimer(rec);
     };
 
     rec.onresult = e => {
-      const transcript = e.results[0][0].transcript;
-      setUserInput(transcript);
-      setListening(false);
-      toast.success('Speech captured!', { id: 'mic-toast' });
+      // Collect each finalized result segment
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          transcriptBuffer += (transcriptBuffer ? ' ' : '') + e.results[i][0].transcript.trim();
+        }
+      }
+      // Reset silence timer each time speech is detected
+      resetSilenceTimer(rec);
     };
 
     rec.onerror = e => {
       console.error('Speech recognition error:', e.error);
+      clearSilenceTimer();
       setListening(false);
       if (e.error === 'not-allowed') {
         toast.error('Microphone access blocked. Enable permissions in browser.');
-      } else {
+      } else if (e.error !== 'aborted') {
         toast.error(`Mic error: ${e.error}`);
       }
     };
 
     rec.onend = () => {
+      clearSilenceTimer();
       setListening(false);
+      recognitionRef.current = null;
+      // Auto-send whatever was captured — do NOT put it in the text box
+      if (transcriptBuffer.trim()) {
+        toast.success('Voice captured — sending...', { id: 'mic-toast', duration: 1500 });
+        // Use functional state update pattern: directly call the API with the captured text
+        setMessages(prev => {
+          const text = transcriptBuffer.trim();
+          const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const updated = [...prev, { role: 'user', text, time }];
+          // Trigger AI response asynchronously after state settles
+          setTimeout(() => sendVoiceMessage(text), 0);
+          return updated;
+        });
+        transcriptBuffer = '';
+      }
     };
 
     rec.start();
@@ -358,10 +421,8 @@ const MockInterviewPage = () => {
     setTimeout(() => speakAI(greeting), 500);
   };
 
-  const sendMessage = async () => {
-    const text = userInput.trim();
-    if (!text) return;
-
+  // Shared AI call logic — used by both typed and voice messages
+  const callAI = async (text, historySnapshot) => {
     if (user && user.tokens < 20) {
       toast.error('You need at least 20 AI tokens to chat! Please upgrade to continue.', {
         style: { background: '#1C1C1F', color: '#F3F3F5', border: '1px solid #333338' }
@@ -369,35 +430,45 @@ const MockInterviewPage = () => {
       return;
     }
 
-    addMessage('user', text);
-    setUserInput('');
-    setAiSpeaking(true); // triggers typing bubble visual
-
+    setAiSpeaking(true);
     try {
-      const history = messages.map(m => ({ role: m.role, text: m.text }));
       const q = INTERVIEW_QUESTIONS[selectedQ];
-
       const res = await axiosClient.post('/chat/interview', {
         message: text,
-        history,
+        history: historySnapshot,
         problemTitle: q.title,
         problemDescription: q.description,
         code,
         language,
         cvFileName
       });
-
       const reply = res.data.text;
       speakAI(reply);
-
-      // Deduct locally for instant UI update
       if (user && user.tokens !== undefined) {
         dispatch({ type: 'auth/updateUserTokens', payload: Math.max(0, user.tokens - 20) });
       }
     } catch (err) {
       console.error('AI Interview communication error:', err);
-      speakAI("I encountered a connection hiccup. Could you please tell me about your approach or continue coding?");
+      speakAI('I encountered a connection hiccup. Could you please tell me about your approach or continue coding?');
     }
+  };
+
+  // Called after voice recognition automatically appends the user message
+  const sendVoiceMessage = async (text) => {
+    setMessages(prev => {
+      const history = prev.map(m => ({ role: m.role, text: m.text }));
+      callAI(text, history);
+      return prev; // no change to messages here, callAI → speakAI adds the AI reply
+    });
+  };
+
+  const sendMessage = async () => {
+    const text = userInput.trim();
+    if (!text) return;
+    addMessage('user', text);
+    setUserInput('');
+    const history = messages.map(m => ({ role: m.role, text: m.text }));
+    await callAI(text, history);
   };
 
   const endInterview = () => {
@@ -763,8 +834,8 @@ const MockInterviewPage = () => {
             </div>
           </div>
 
-          {/* Chat transcript */}
-          <div ref={chatRef} className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 hide-scrollbar">
+          {/* Chat transcript — fixed height, scrolls internally */}
+          <div ref={chatRef} className="overflow-y-auto p-3 flex flex-col gap-3" style={{ flex: '1 1 0', minHeight: 0, scrollbarWidth: 'thin', scrollbarColor: '#333338 transparent' }}>
             {messages.length === 0 && (
               <div className="text-center mt-8">
                 <span className="material-symbols-outlined text-3xl opacity-20" style={{ color: '#8A8B91' }}>chat</span>
@@ -812,9 +883,10 @@ const MockInterviewPage = () => {
                 className="rc-input flex-1 !py-2 text-xs"
               />
               <button onClick={startListening}
+                title={listening ? 'Stop listening (click to stop)' : 'Start voice input'}
                 className="p-2 rounded-lg transition-all"
-                style={{ background: listening ? 'rgba(239,68,68,0.2)' : '#1C1C1F', border: '1px solid #222225', color: listening ? '#ef4444' : '#8A8B91' }}>
-                <span className="material-symbols-outlined text-[16px]">{listening ? 'mic' : 'mic'}</span>
+                style={{ background: listening ? 'rgba(239,68,68,0.2)' : '#1C1C1F', border: `1px solid ${listening ? 'rgba(239,68,68,0.4)' : '#222225'}`, color: listening ? '#ef4444' : '#8A8B91' }}>
+                <span className="material-symbols-outlined text-[16px]">{listening ? 'mic_off' : 'mic'}</span>
               </button>
               <button onClick={sendMessage}
                 className="p-2 rounded-lg" style={{ background: '#FF4F00', color: 'white' }}>
