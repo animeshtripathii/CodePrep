@@ -1,8 +1,9 @@
 // frontend/src/utils/axiosClient.js
 import axios from 'axios';
+import getBackendUrl from './backendUrl';
 
 const axiosClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "https://codeprep-1kzd.onrender.com",
+    baseURL: getBackendUrl(),
     withCredentials: true,
     headers: {
         "Content-Type": "application/json",

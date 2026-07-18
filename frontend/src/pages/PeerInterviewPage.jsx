@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import { io } from 'socket.io-client';
 import axiosClient from '../utils/axiosClient';
 import { useSelector } from 'react-redux';
+import getBackendUrl from '../utils/backendUrl';
 
 /* ── Room Setup Screen ── */
 const RoomSetup = ({ onJoin }) => {
@@ -220,6 +221,7 @@ const PeerInterviewPage = () => {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [localStream, setLocalStream] = useState(null);
+  const [partnerStream, setPartnerStream] = useState(null);
   const [activeTab, setActiveTab] = useState('chat'); // chat | problem
   
   // Workspace Tab: editor | whiteboard
@@ -246,6 +248,63 @@ const PeerInterviewPage = () => {
   const chatRef = useRef(null);
   const codeUpdateRef = useRef(false);
   const userName = user?.firstName || 'You';
+
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
+
+  useEffect(() => {
+    localStreamRef.current = localStream;
+    const pc = peerConnectionRef.current;
+    if (pc && localStream) {
+      const senders = pc.getSenders();
+      localStream.getTracks().forEach(track => {
+        const hasTrack = senders.some(sender => sender.track === track);
+        if (!hasTrack) {
+          pc.addTrack(track, localStream);
+        }
+      });
+    }
+  }, [localStream]);
+
+  const initPeerConnection = useCallback(() => {
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+    }
+
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ]
+    });
+
+    peerConnectionRef.current = pc;
+
+    const currentLocalStream = localStreamRef.current;
+    if (currentLocalStream) {
+      currentLocalStream.getTracks().forEach(track => {
+        pc.addTrack(track, currentLocalStream);
+      });
+    }
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate && socketRef.current) {
+        socketRef.current.emit('webrtc-ice-candidate', {
+          room: roomCode,
+          candidate: event.candidate
+        });
+      }
+    };
+
+    pc.ontrack = (event) => {
+      if (event.streams && event.streams[0]) {
+        setPartnerStream(event.streams[0]);
+      }
+    };
+
+    return pc;
+  }, [roomCode]);
 
   const addSystemMsg = useCallback((text) => {
     setChatMessages(prev => [...prev, { role: 'system', text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
@@ -290,7 +349,7 @@ const PeerInterviewPage = () => {
   // Socket.io connection
   useEffect(() => {
     if (!roomCode) return;
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+    const backendUrl = getBackendUrl();
     socketRef.current = io(backendUrl, {
       auth: { token: user?.token },
       withCredentials: true,
@@ -306,11 +365,58 @@ const PeerInterviewPage = () => {
     socketRef.current.on('user-joined', ({ userName: name }) => {
       setPartnerConnected(true);
       addSystemMsg(`${name} joined the room 🎉`);
+
+      // Initialize WebRTC as the initiator
+      const pc = initPeerConnection();
+      pc.createOffer()
+        .then(offer => pc.setLocalDescription(offer))
+        .then(() => {
+          socketRef.current.emit('webrtc-offer', {
+            room: roomCode,
+            offer: pc.localDescription
+          });
+        })
+        .catch(err => console.error("Failed to create offer:", err));
     });
 
     socketRef.current.on('user-left', ({ userName: name }) => {
       setPartnerConnected(false);
       addSystemMsg(`${name} left the room`);
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+      setPartnerStream(null);
+    });
+
+    socketRef.current.on('webrtc-offer', ({ offer }) => {
+      const pc = peerConnectionRef.current || initPeerConnection();
+      pc.setRemoteDescription(new RTCSessionDescription(offer))
+        .then(() => pc.createAnswer())
+        .then(answer => pc.setLocalDescription(answer))
+        .then(() => {
+          socketRef.current.emit('webrtc-answer', {
+            room: roomCode,
+            answer: pc.localDescription
+          });
+        })
+        .catch(err => console.error("Failed to handle offer:", err));
+    });
+
+    socketRef.current.on('webrtc-answer', ({ answer }) => {
+      const pc = peerConnectionRef.current;
+      if (pc) {
+        pc.setRemoteDescription(new RTCSessionDescription(answer))
+          .catch(err => console.error("Failed to set remote description from answer:", err));
+      }
+    });
+
+    socketRef.current.on('webrtc-ice-candidate', ({ candidate }) => {
+      const pc = peerConnectionRef.current;
+      if (pc && candidate) {
+        pc.addIceCandidate(new RTCIceCandidate(candidate))
+          .catch(err => console.error("Failed to add ICE candidate:", err));
+      }
     });
 
     socketRef.current.on('code-update', ({ code: newCode }) => {
@@ -345,8 +451,15 @@ const PeerInterviewPage = () => {
       setPhase('feedback');
     });
 
-    return () => { if (socketRef.current) socketRef.current.disconnect(); };
-  }, [roomCode, userName, addSystemMsg, drawOnCanvas, clearCanvasLocal]);
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+      }
+      setPartnerStream(null);
+    };
+  }, [roomCode, userName, addSystemMsg, drawOnCanvas, clearCanvasLocal, initPeerConnection]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -725,7 +838,7 @@ const PeerInterviewPage = () => {
           {/* Video tiles */}
           <div className="p-3 flex flex-col gap-2 border-b" style={{ borderColor: '#1a1a1e' }}>
             <VideoTile stream={localStream} label={`${userName} (You)`} muted />
-            <VideoTile stream={null} label="Partner" />
+            <VideoTile stream={partnerStream} label="Partner" />
           </div>
 
           {/* Tab switcher */}

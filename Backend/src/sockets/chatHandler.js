@@ -210,6 +210,18 @@ Focus only on programming and DSA topics.`
             socket.to(room).emit("user-joined", { userName: pName });
         });
 
+        socket.on("webrtc-offer", ({ room, offer }) => {
+            socket.to(room).emit("webrtc-offer", { offer });
+        });
+
+        socket.on("webrtc-answer", ({ room, answer }) => {
+            socket.to(room).emit("webrtc-answer", { answer });
+        });
+
+        socket.on("webrtc-ice-candidate", ({ room, candidate }) => {
+            socket.to(room).emit("webrtc-ice-candidate", { candidate });
+        });
+
         socket.on("code-update", ({ room, code: newCode }) => {
             socket.to(room).emit("code-update", { code: newCode });
         });

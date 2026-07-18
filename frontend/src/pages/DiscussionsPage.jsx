@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
 import axiosClient from '../utils/axiosClient';
+import getBackendUrl from '../utils/backendUrl';
 import toast from 'react-hot-toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -68,7 +69,7 @@ const DiscussionsPage = () => {
             return;
         }
 
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+        const backendUrl = getBackendUrl();
         const newSocket = io(backendUrl, {
             auth: { token: jwtToken },
             withCredentials: true,
